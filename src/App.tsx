@@ -1,10 +1,15 @@
 import './App.css'
+import Header from './components/user/Header'
+import { Outlet } from 'react-router-dom'
 
 function App() {
   return (
-    <h1 className="text-3xl font-bold text-blue-500">
-      Hello Tailwind!
-    </h1>
+    <div className='min-h-screen bg-neutral-50 flex flex-col'>
+      <Header />
+      <main className='flex-1 flex flex-col'>
+        <Outlet />
+      </main>
+    </div>
   )
 }
 
