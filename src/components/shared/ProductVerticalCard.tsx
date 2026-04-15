@@ -2,12 +2,14 @@ import React from 'react'
 
 interface ProductVerticalCardProps {
   name: string;
-  price: string;
-  oldPrice?: string;
+  price: number;
+  oldPrice?: number;
   image: string;
 }
 
 const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image }) => {
+  const formatPrice = (p: number) => p.toLocaleString('sr-RS');
+
   return (
     <div className="bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
       <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-50 flex items-center justify-center p-4">
@@ -29,9 +31,9 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
         </h3>
         
         <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-lg font-bold text-black">{price} RSD</span>
+          <span className="text-lg font-bold text-black">{formatPrice(price)} RSD</span>
           {oldPrice && (
-            <span className="text-xs text-neutral-400 line-through">{oldPrice} RSD</span>
+            <span className="text-xs text-neutral-400 line-through">{formatPrice(oldPrice)} RSD</span>
           )}
         </div>
       </div>

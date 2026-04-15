@@ -33,7 +33,7 @@ const HomePage = () => {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                     {categories.map(cat => (
-                        <CategoryCard key={cat.id} name={cat.name} />
+                        <CategoryCard key={cat.id} name={cat.name} slug={cat.slug} />
                     ))}
                 </div>
             </section>
