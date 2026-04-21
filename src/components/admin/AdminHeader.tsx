@@ -2,7 +2,7 @@ import React from 'react'
 
 const AdminHeader = () => {
   return (
-    <div className='py-4 px-8 flex items-center justify-between border-b-1 border-gray-300'>
+    <div className='py-4 px-8 flex items-center justify-between border-b-1 border-gray-200 bg-white'>
         <h1 className='text-2xl'>Dashboard</h1>
 
         <div className='flex items-center gap-4'>

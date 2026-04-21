@@ -44,13 +44,14 @@ const AdminSidebar = () => {
   };
 
   return (
-    <div className="w-62 border-r border-neutral-100 bg-white flex flex-col min-h-screen justify-between">
+    <div className="w-62 border-r border-neutral-300 bg-white flex flex-col min-h-screen justify-between">
       <div className="flex flex-col">
-        <div className="p-8 border-b border-neutral-100">
+        <div className="p-8 border-neutral-100">
           <span className="text-lg font-bold tracking-tight text-black">Admin Panel</span>
         </div>
 
         <nav className="flex-1 px-4 mt-4 flex flex-col gap-2">
+          <span className='font-light text-sm mb-2 text-gray-400'>Meni</span>
           {ADMIN_SIDEBAR_ITEMS.map((item) => (
             <NavLink
               key={item.path}
