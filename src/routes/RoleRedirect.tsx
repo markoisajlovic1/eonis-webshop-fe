@@ -1,27 +1,22 @@
-// import React from 'react';
-// import { Navigate } from 'react-router-dom';
-// import { authService } from '../services/authService';
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { authService } from '../services/authService';
+import { Role } from '../types/auth';
 
-// /**
-//  * Smart index redirect — sends each role to their correct home page.
-//  * Prevents the redirect loop where non-Member roles bounce between
-//  * "/" → "/dashboard" → ProtectedRoute(Member) → "/" → ...
-//  */
-// const RoleRedirect: React.FC = () => {
-//     const user = authService.getUserFromToken();
+// index redirect — sends each role to their correct home page.
+const RoleRedirect: React.FC = () => {
+    const user = authService.getUserFromToken();
 
-//     if (!user) return <Navigate to="/login" replace />;
+    // if (!user) return <Navigate to="/login" replace />;
 
-//     switch (user.role) {
-//         case 'Admin':
-//             return <Navigate to="/admin" replace />;
-//         case 'Trainer':
-//             return <Navigate to="/trainer-dashboard" replace />;
-//         case 'Nutritionist':
-//             return <Navigate to="/nutritionist" replace />;
-//         default:
-//             return <Navigate to="/dashboard" replace />;
-//     }
-// };
+    // switch (user.role) {
+    //     case Role.Employee:
+    //         return <Navigate to="/admin" replace />;
+    //     default:
+    //         return <Navigate to="/" replace />;
+    // }
 
-// export default RoleRedirect;
+    return <Navigate to="/admin" replace />;
+};
+
+export default RoleRedirect;
