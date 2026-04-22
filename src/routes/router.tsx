@@ -12,6 +12,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import DashboardPage from '../pages/admin/DashboardPage';
 import ProductsPage from '../pages/admin/ProductsPage';
 import CouponsPage from '../pages/admin/CouponsPage';
+import ProductPage from '../pages/user/ProductPage';
 
 export const router = createBrowserRouter([
     {
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
             { index: true, element: <HomePage /> },
             { path: 'auth', element: <AuthPage /> },
             { path: ':categorySlug', element: <CatalogPage /> },
+            { path: 'proizvodi/:productSlug', element: <ProductPage /> },
             {
                 path: 'profile',
                 element: <ProfilePage />,

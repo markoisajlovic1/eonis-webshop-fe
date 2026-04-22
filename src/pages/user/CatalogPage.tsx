@@ -181,6 +181,7 @@ const CatalogPage: React.FC = () => {
                     price={product.price}
                     oldPrice={product.oldPrice}
                     image={product.image}
+                    slug={product.name}
                   />
                 ))}
               </div>

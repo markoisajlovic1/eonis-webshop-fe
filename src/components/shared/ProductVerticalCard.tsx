@@ -1,17 +1,19 @@
 import React from 'react'
+import { Link } from 'react-router-dom';
 
 interface ProductVerticalCardProps {
   name: string;
   price: number;
   oldPrice?: number;
   image: string;
+  slug: string;
 }
 
-const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image }) => {
+const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image, slug }) => {
   const formatPrice = (p: number) => p.toLocaleString('sr-RS');
 
   return (
-    <div className="bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
+    <Link to={`/proizvodi/${slug}`} className="bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
       <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-50 flex items-center justify-center p-4">
         <img 
           src={image} 
@@ -41,7 +43,7 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
       <button className="mt-auto w-full py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold opacity-0 translate-y-2 transition-all group-hover:opacity-100 group-hover:translate-y-0 active:bg-black">
         Dodaj u korpu
       </button>
-    </div>
+    </Link>
   )
 }
 
