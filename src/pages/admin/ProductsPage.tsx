@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ProductsSearch from '../../components/admin/ProductsSearch'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 
@@ -30,9 +31,9 @@ const ProductsPage = () => {
   const [subcategory, setSubcategory] = useState('Sve subkategorije')
   const [sort, setSort] = useState('Najnovije')
 
-  // ✅ NOVO
   const [status, setStatus] = useState<'Draft' | 'Published'>('Published')
   const [view, setView] = useState<'Grid' | 'List'>('Grid')
+  const navigate = useNavigate()
 
   const filtered = useMemo(() => {
     let list = [...MOCK_PRODUCTS]
@@ -51,7 +52,6 @@ const ProductsPage = () => {
       list = list.filter((p) => p.subcategory === subcategory)
     }
 
-    // ✅ STATUS FILTER
     list = list.filter((p) => p.status === status)
 
     switch (sort) {
@@ -81,7 +81,7 @@ const ProductsPage = () => {
         view={view} onViewChange={setView}
       />
 
-      {/* ✅ CONDITIONAL VIEW */}
+      {/* CONDITIONAL VIEW */}
       {view === 'Grid' ? (
         <div className="grid grid-cols-3 gap-4">
           {filtered.map((p) => (
@@ -105,7 +105,11 @@ const ProductsPage = () => {
             </thead>
             <tbody>
               {filtered.map((product) => (
-                <tr key={product.id}>
+                <tr
+                  key={product.id}
+                  onClick={() => navigate(`/admin/products/${product.id}`)}
+                  className="cursor-pointer hover:bg-neutral-50 transition-colors"
+                >
                   <td className="px-6 py-4">{product.name}</td>
                   <td className="px-6 py-4">{product.category}</td>
                   <td className="px-6 py-4">{product.price.toLocaleString('sr-RS')} RSD</td>

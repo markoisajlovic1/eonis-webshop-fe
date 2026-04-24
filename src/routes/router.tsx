@@ -11,6 +11,7 @@ import { Role } from '../types/auth';
 import AdminLayout from '../layouts/AdminLayout';
 import DashboardPage from '../pages/admin/DashboardPage';
 import ProductsPage from '../pages/admin/ProductsPage';
+import AdminProductPage from '../pages/admin/AdminProductPage';
 import CouponsPage from '../pages/admin/CouponsPage';
 import ProductPage from '../pages/user/ProductPage';
 
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
             { index: true, element: <Navigate to="dashboard" replace /> },
             { path: 'dashboard', element: <DashboardPage /> },
             { path: 'products', element: <ProductsPage /> },
+            { path: 'products/:productId', element: <AdminProductPage /> },
             { path: 'coupons', element: <CouponsPage /> },
         ],
     },
