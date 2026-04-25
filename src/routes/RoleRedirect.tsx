@@ -3,20 +3,14 @@ import { Navigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { Role } from '../types/auth';
 
-// index redirect — sends each role to their correct home page.
 const RoleRedirect: React.FC = () => {
-    const user = authService.getUserFromToken();
+  const role = authService.getRole();
 
-    // if (!user) return <Navigate to="/login" replace />;
-
-    // switch (user.role) {
-    //     case Role.Employee:
-    //         return <Navigate to="/admin" replace />;
-    //     default:
-    //         return <Navigate to="/" replace />;
-    // }
-
+  if (role === Role.Employee) {
     return <Navigate to="/admin" replace />;
+  }
+
+  return <Navigate to="/" replace />;
 };
 
 export default RoleRedirect;

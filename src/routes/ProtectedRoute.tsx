@@ -9,18 +9,16 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ requiredRole }: ProtectedRouteProps) => {
   const isAuthenticated = authService.isAuthenticated();
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/auth" replace />;
-  // }
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
 
-  // if (requiredRole && !authService.hasRole(requiredRole)) {
-    // If user is authenticated but doesn't have the role, redirect to a default authorized page
-    // if (authService.hasRole(Role.Employee)) {
-    //   return <Navigate to="/admin" replace />;
-    // }
-    return <Navigate to="/admin" replace />;
-    return <Navigate to="/" replace />;
-  // }
+  if (requiredRole) {
+    const role = authService.getRole();
+    if (role !== requiredRole) {
+      return <Navigate to="/" replace />;
+    }
+  }
 
   return <Outlet />;
 };

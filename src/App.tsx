@@ -1,6 +1,8 @@
 import './App.css'
 import Header from './components/user/Header'
 import { Outlet } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 function App() {
   return (
@@ -9,6 +11,7 @@ function App() {
       <main className='flex-1 flex flex-col'>
         <Outlet />
       </main>
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   )
 }

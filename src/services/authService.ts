@@ -1,147 +1,153 @@
-import type { DecodedToken, LoginDTO, loginResponse, RegisterDTO, Role, UserInfo } from '../types/auth';
-import { jwtDecode } from 'jwt-decode';
+import axiosInstance from './api/axiosInstance';
+import { AxiosError } from 'axios';
+import type { RegisterPayload, User, AuthError, LoginResponse, TokenResponse, RegisterResponse, DecodedToken } from '../types/auth';
+import { Role } from '../types/auth';
 
-const API_BASE_URL = 'http://localhost:5220/api/auth';
+export const CLAIMS = {
+  ROLE: 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+  EMAIL: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+} as const;
 
-export const authService = {
-    async login(dto: LoginDTO) {
-        const response = await fetch(`${API_BASE_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dto),
-        });
+class AuthService {
+  private readonly AUTH_ENDPOINT = '/api/Auth';
+  // Store access token in memory only (bolje ne u localStorage zbog XSS protection)
+  private accessToken: string | null = null;
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Login failed');
-        }
+  async login(email: string, password: string): Promise<void> {
+    try {
+      const { data } = await axiosInstance.post<LoginResponse>(
+        `${this.AUTH_ENDPOINT}/login`,
+        { email, password }
+      );
 
-        const data = await response.json();
-
-        // Map capitalized keys from backend to lowercase interface keys
-        const formattedData: loginResponse = {
-            user: data.User || data.user,
-            role: data.Role || data.role,
-            token: data.Token || data.token
-        };
-
-        if (formattedData.token) {
-            localStorage.setItem('token', formattedData.token);
-            try {
-                const decoded = jwtDecode<DecodedToken>(formattedData.token);
-                formattedData.id = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || decoded.nameid || decoded.sub;
-            } catch (err) {
-                console.error("Error decoding token for ID:", err);
-            }
-        }
-        return formattedData;
-    },
-
-    async register(dto: RegisterDTO) {
-        const response = await fetch(`${API_BASE_URL}/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dto),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Registration failed');
-        }
-
-        return response.text();
-    },
-
-    logout() {
-        localStorage.removeItem('token');
-    },
-
-    getToken() {
-        return localStorage.getItem('token');
-    },
-
-    isAuthenticated() {
-        return !!this.getToken();
-    },
-
-    getUserFromToken(): UserInfo | null {
-        const token = this.getToken();
-        if (!token) return null;
-        try {
-            const decoded = jwtDecode<DecodedToken>(token);
-            const id = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || decoded.sub || decoded.nameid || '';
-            const firstName = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"] || decoded.firstName || '';
-            const lastName = decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"] || decoded.lastName || '';
-            const fullName = firstName && lastName ? `${firstName} ${lastName}` : (decoded.unique_name || 'User');
-
-            const rawRole = decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || decoded.role;
-            const role = (Array.isArray(rawRole) ? rawRole[0] : rawRole) as Role;
-
-            return {
-                id,
-                fullName,
-                role,
-                isAuthenticated: true
-            };
-        } catch {
-            return null;
-        }
-    },
-
-    getCurrentUser(): DecodedToken | null {
-        const token = this.getToken();
-        if (!token) return null;
-        try {
-            return jwtDecode<DecodedToken>(token);
-        } catch {
-            return null;
-        }
-    },
-
-    hasRole(requiredRole: Role): boolean {
-        const user = this.getCurrentUser();
-        if (!user) return false;
-
-        const userRole = user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || user.role;
-
-        if (Array.isArray(userRole)) {
-            return userRole.includes(requiredRole);
-        }
-        return userRole === requiredRole;
-    },
-
-    async getUserProfile(userId: string) {
-        const token = this.getToken();
-        const response = await fetch(`${API_BASE_URL}/${userId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch user profile');
-        return response.json();
-    },
-
-    async updateProfile(dto: { firstName: string, lastName: string, email: string }) {
-        const token = this.getToken();
-        const response = await fetch(`${API_BASE_URL}/profile`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(dto)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Failed to update profile');
-        }
-
-        return response.json();
+      this.setToken(data.accessToken);
+    } catch (error) {
+      throw this.handleError(error);
     }
-};
+  }
+
+  async register(payload: RegisterPayload): Promise<RegisterResponse> {
+    try {
+      const { data } = await axiosInstance.post<RegisterResponse>(
+        `${this.AUTH_ENDPOINT}/register`,
+        payload
+      );
+
+      return data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await axiosInstance.post(`${this.AUTH_ENDPOINT}/logout`);
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      // Clear local token
+      this.removeToken();
+    }
+  }
+
+  //---------------------------------------------
+
+  async getMe(): Promise<User> {
+    try {
+      const { data } = await axiosInstance.get<User>(`${this.AUTH_ENDPOINT}/me`);
+      return data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async refreshToken(): Promise<string> {
+    try {
+      const { data } = await axiosInstance.post<TokenResponse>(
+        `${this.AUTH_ENDPOINT}/refresh`
+      );
+      // Update access token in memory
+      this.setToken(data.access_token);
+      return data.access_token;
+    } catch (error) {
+      this.removeToken();
+      throw this.handleError(error);
+    }
+  }
+
+  private setToken(token: string): void {
+    this.accessToken = token;
+  }
+
+  private removeToken(): void {
+    this.accessToken = null;
+  }
+
+  getToken(): string | null {
+    return this.accessToken;
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.getToken();
+  }
+
+  getUserFromToken(): DecodedToken | null {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload)) as DecodedToken;
+    } catch {
+      return null;
+    }
+  }
+
+  getRole(): Role | null {
+    const decoded = this.getUserFromToken();
+    if (!decoded) return null;
+    // const raw = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+    // const role = Array.isArray(raw) ? raw[0] : raw;
+    const role = this.getClaim(decoded, CLAIMS.ROLE);
+    return role ?? null;
+  }
+
+  getClaim(decoded: Record<string, unknown>, claim: string): Role | null {
+    const raw = decoded[claim];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    
+    switch (value) {
+      case '2': return Role.Employee;
+      case '1': return Role.Customer;
+      default:  return null;
+    }
+  }
+
+
+
+  // Error handling --------------------------------------
+
+  private handleError(error: unknown): AuthError {
+    if (error instanceof AxiosError) {
+      const message = error.response?.data?.message || error.message || 'An error occurred';
+      const statusCode = error.response?.status;
+
+      if (statusCode === 401) {
+        return { message: 'Invalid credentials', statusCode };
+      }
+
+      if (statusCode === 404) {
+        return { message: 'Service not found', statusCode };
+      }
+
+      if (statusCode === 500) {
+        return { message: 'Server error, please try again later', statusCode };
+      }
+
+      return { message, statusCode };
+    }
+
+    return { message: 'An unexpected error occurred' };
+  }
+}
+
+export const authService = new AuthService();

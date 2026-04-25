@@ -36,13 +36,18 @@ export const router = createBrowserRouter([
     },
     {
         path: '/admin',
-        element: <AdminLayout />,
+        element: <ProtectedRoute requiredRole={Role.Employee} />,
         children: [
-            { index: true, element: <Navigate to="dashboard" replace /> },
-            { path: 'dashboard', element: <DashboardPage /> },
-            { path: 'products', element: <ProductsPage /> },
-            { path: 'products/:productId', element: <AdminProductPage /> },
-            { path: 'coupons', element: <CouponsPage /> },
+            {
+                element: <AdminLayout />,
+                children: [
+                    { index: true, element: <Navigate to="dashboard" replace /> },
+                    { path: 'dashboard', element: <DashboardPage /> },
+                    { path: 'products', element: <ProductsPage /> },
+                    { path: 'products/:productId', element: <AdminProductPage /> },
+                    { path: 'coupons', element: <CouponsPage /> },
+                ],
+            },
         ],
     },
 ]);
