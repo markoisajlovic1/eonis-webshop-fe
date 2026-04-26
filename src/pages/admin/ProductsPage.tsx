@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ProductsSearch from '../../components/admin/ProductsSearch'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
+import { IoIosAddCircleOutline } from "react-icons/io";
+
 
 interface Product {
   id: number
@@ -32,7 +34,7 @@ const ProductsPage = () => {
   const [sort, setSort] = useState('Najnovije')
 
   const [status, setStatus] = useState<'Draft' | 'Published'>('Published')
-  const [view, setView] = useState<'Grid' | 'List'>('Grid')
+  const [view, setView] = useState<'Grid' | 'List'>('List')
   const navigate = useNavigate()
 
   const filtered = useMemo(() => {
@@ -67,9 +69,19 @@ const ProductsPage = () => {
 
   return (
     <div className="p-8 flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-800">Proizvodi</h1>
-        <span className="text-sm text-gray-400">{filtered.length} proizvoda</span>
+      <div className='flex items-center justify-between'>
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-800">Proizvodi</h1>
+          <span className="text-sm text-gray-400">{filtered.length} proizvoda</span>
+        </div>
+
+        <button
+          onClick={() => navigate('/admin/products/new')}
+          className='bg-blue-500 px-5 py-1.5 text-white rounded-md cursor-pointer flex items-center gap-2'
+        >
+          <IoIosAddCircleOutline />
+          Novi proizvod
+        </button>
       </div>
 
       <ProductsSearch

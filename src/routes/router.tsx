@@ -14,6 +14,8 @@ import ProductsPage from '../pages/admin/ProductsPage';
 import AdminProductPage from '../pages/admin/AdminProductPage';
 import CouponsPage from '../pages/admin/CouponsPage';
 import ProductPage from '../pages/user/ProductPage';
+import BrandsPage from '../pages/admin/BrandsPage';
+import CategoriesPage from '../pages/admin/CategoriesPage';
 
 export const router = createBrowserRouter([
     {
@@ -44,8 +46,11 @@ export const router = createBrowserRouter([
                     { index: true, element: <Navigate to="dashboard" replace /> },
                     { path: 'dashboard', element: <DashboardPage /> },
                     { path: 'products', element: <ProductsPage /> },
+                    { path: 'products/new', element: <AdminProductPage /> },
                     { path: 'products/:productId', element: <AdminProductPage /> },
                     { path: 'coupons', element: <CouponsPage /> },
+                    { path: 'brands', element: <BrandsPage /> },
+                    { path: 'categories', element: <CategoriesPage /> },
                 ],
             },
         ],

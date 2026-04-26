@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import type { LoginPayload, RegisterFormData } from '../../types/auth';
 import { Role } from '../../types/auth';
 import { authService } from '../../services/authService';
+import { loginSuccess } from '../../store/slices/authSlice';
+import type { AppDispatch } from '../../store/store';
 
 const initialLoginData: LoginPayload = {
   email: '',
@@ -22,6 +25,7 @@ const initialRegisterData: RegisterFormData = {
 
 const AuthCard: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const [isLogin, setIsLogin] = useState(true);
   const [loginData, setLoginData] = useState<LoginPayload>(initialLoginData);
   const [registerData, setRegisterData] = useState<RegisterFormData>(initialRegisterData);
@@ -50,8 +54,13 @@ const AuthCard: React.FC = () => {
     try {
       if (isLogin) {
         await authService.login(loginData.email, loginData.password);
-        toast.success('Uspešno ste se prijavili!');
         const role = authService.getRole();
+        const username = authService.getUsername();
+        const email = authService.getEmail();
+        if (role && username && email) {
+          dispatch(loginSuccess({ username, email, role }));
+        }
+        toast.success('Uspešno ste se prijavili!');
         navigate(role === Role.Employee ? '/admin/dashboard' : '/');
       } else {
         if (registerData.password !== registerData.confirmPassword) {

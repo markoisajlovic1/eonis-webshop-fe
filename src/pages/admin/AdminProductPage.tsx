@@ -1,13 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { IoTrashBinOutline, IoChevronBack } from "react-icons/io5";
 import { LiaExchangeAltSolid } from "react-icons/lia";
 
-
-const productImage = "https://gigatron.rs/_next/image?url=https%3A%2F%2Fbackend.gigatron.rs%2Fmedia%2Fcatalog%2Fproduct%2Fcache%2Fd62e1a0582bf7257bddc609f302ce89c%2F8%2F6%2F8680096106743.jpg&w=2048&q=75";
-
-const brandImage = "https://images.icon-icons.com/2389/PNG/512/lenovo_logo_icon_145112.png"
-
 const AdminProductPage = () => {
+  const navigate = useNavigate();
   const [discountEnabled, setDiscountEnabled] = useState(false);
 
   return (
@@ -15,12 +12,11 @@ const AdminProductPage = () => {
       {/* Actions */}
       <div className="bg-white flex justify-between items-center p-4 rounded-md">
         <div className="flex items-center gap-6">
-          <button>
+          <button onClick={() => navigate(-1)}>
             <IoChevronBack />
           </button>
           <div>
-            <h2 className="text-xl">Naziv proizvoda</h2>
-            <span className="text-xs font-light text-gray-500">Last Update 28 Aprile 2026 at 8:43 PM</span>
+            <h2 className="text-xl">Novi proizvod</h2>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -38,43 +34,39 @@ const AdminProductPage = () => {
         {/* Left: image + brand + cat/subcat */}
         <div className="flex flex-col gap-4 w-1/2 shrink-0">
           <div className="rounded-md overflow-hidden flex gap-3">
-            <img
-              src={productImage}
-              alt="Proizvod"
-              className="w-1/2 object-contain bg-white rounded-md p-4"
-            />
+            <div className="w-1/2 bg-white rounded-md p-4 flex items-center justify-center text-sm text-gray-400">
+              Glavna slika
+            </div>
             <div className="grid grid-cols-2 grid-rows-2 gap-3 flex-1">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-md flex items-center justify-center">
-                  <img src={productImage} alt={`Slika ${i + 1}`} className="w-full h-full object-contain p-2" />
+                <div key={i} className="bg-white rounded-md flex items-center justify-center text-xs text-gray-300 h-20">
+                  +
                 </div>
               ))}
             </div>
           </div>
 
-          <div className=" bg-white flex items-center p-4 gap-6">
-            <div className="w-12 h-12 bg-neutral-100 p-2 rounded-full flex items-center justify-center">
-              <img src={brandImage} alt="" />
+          <div className="bg-white flex items-center p-4 gap-6">
+            <div className="w-12 h-12 bg-neutral-100 p-2 rounded-full flex items-center justify-center text-xs text-gray-300">
+              Logo
             </div>
-            <div className=" rounded-md flex justify-between gap-1 w-full">
+            <div className="rounded-md flex justify-between gap-1 w-full">
               <div className="flex flex-col">
                 <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Brend</span>
-                <span className="text-sm font-semibold text-neutral-800">Lenovo</span>
+                <span className="text-sm text-neutral-400">—</span>
               </div>
-
               <LiaExchangeAltSolid />
             </div>
           </div>
-          
 
           <div className="bg-white rounded-md p-4 flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Kategorija</span>
-              <span className="text-sm font-semibold text-neutral-800">Laptopovi</span>
+              <span className="text-sm text-neutral-400">—</span>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Subkategorija</span>
-              <span className="text-sm font-semibold text-neutral-800">Gaming laptopovi</span>
+              <span className="text-sm text-neutral-400">—</span>
             </div>
           </div>
         </div>
@@ -82,27 +74,25 @@ const AdminProductPage = () => {
         {/* Right: form */}
         <div className="flex-1 flex flex-col gap-4">
           <div className="bg-white rounded-md p-6 flex flex-col gap-5">
-            {/* Naziv */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Naziv proizvoda</label>
               <input
                 type="text"
-                defaultValue="LENOVO Legion 5 15IRX10 i7/32/1TB/5060"
+                placeholder="Unesite naziv proizvoda"
                 className="border border-neutral-200 rounded-md px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:border-neutral-400 transition-colors"
               />
             </div>
 
-            {/* Cena */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cena (RSD)</label>
               <input
+                min={0}
                 type="number"
-                defaultValue={189999}
+                placeholder="0"
                 className="border border-neutral-200 rounded-md px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:border-neutral-400 transition-colors"
               />
             </div>
 
-            {/* Discount */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Popust (%)</label>
@@ -120,7 +110,7 @@ const AdminProductPage = () => {
                 type="number"
                 min={0}
                 max={100}
-                defaultValue={10}
+                placeholder="0"
                 disabled={!discountEnabled}
                 className={`border rounded-md px-3 py-2 text-sm focus:outline-none transition-colors ${
                   discountEnabled
@@ -131,12 +121,11 @@ const AdminProductPage = () => {
             </div>
           </div>
 
-          {/* Description */}
           <div className="bg-white rounded-md p-6 flex flex-col gap-1.5">
             <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Opis proizvoda</label>
             <textarea
               rows={7}
-              defaultValue="LENOVO Legion 5 15IRX10 je gaming laptop dizajniran za visoke performanse i dugotrajnu upotrebu. Opremljen najnovijim Intel Core i7 procesorom i NVIDIA GeForce RTX 5060 grafičkom karticom."
+              placeholder="Unesite opis proizvoda..."
               className="border border-neutral-200 rounded-md px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:border-neutral-400 transition-colors resize-none"
             />
           </div>

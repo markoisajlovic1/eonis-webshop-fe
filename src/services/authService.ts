@@ -6,12 +6,14 @@ import { Role } from '../types/auth';
 export const CLAIMS = {
   ROLE: 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
   EMAIL: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+  NAME: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
+  ID: 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
 } as const;
 
 class AuthService {
   private readonly AUTH_ENDPOINT = '/api/Auth';
-  // Store access token in memory only (bolje ne u localStorage zbog XSS protection)
   private accessToken: string | null = null;
+  private username: string | null = null;
 
   async login(email: string, password: string): Promise<void> {
     try {
@@ -21,6 +23,7 @@ class AuthService {
       );
 
       this.setToken(data.accessToken);
+      this.username = this.getUserFromToken()?.[CLAIMS.NAME] ?? null;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -81,10 +84,19 @@ class AuthService {
 
   private removeToken(): void {
     this.accessToken = null;
+    this.username = null;
   }
 
   getToken(): string | null {
     return this.accessToken;
+  }
+
+  getUsername(): string | null {
+    return this.username;
+  }
+
+  getEmail(): string | null {
+    return this.getUserFromToken()?.[CLAIMS.EMAIL] ?? null;
   }
 
   isAuthenticated(): boolean {
@@ -116,9 +128,9 @@ class AuthService {
     const value = Array.isArray(raw) ? raw[0] : raw;
     
     switch (value) {
-      case '2': return Role.Employee;
-      case '1': return Role.Customer;
-      default:  return null;
+      case Role.Employee: return Role.Employee;
+      case Role.Customer: return Role.Customer;
+      default: return null;
     }
   }
 

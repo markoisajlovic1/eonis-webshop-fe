@@ -1,5 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FiGrid, FiBox, FiTag, FiLogOut } from 'react-icons/fi';
+import { TbBrandSketch } from "react-icons/tb";
+import { TbCategory2 } from "react-icons/tb";
+
 import { authService } from '../../services/authService';
 import { type ReactNode } from 'react';
 
@@ -31,6 +34,20 @@ const ADMIN_SIDEBAR_ITEMS: AdminSidebarItem[] = [
     path: '/admin/coupons',
     icon: (isActive) => (
       <FiTag className={`text-xl ${isActive ? 'text-amber-500' : 'text-neutral-500'}`} />
+    ),
+  },
+  {
+    label: 'Brendovi',
+    path: '/admin/brands',
+    icon: (isActive) => (
+      <TbBrandSketch className={`text-xl ${isActive ? 'text-amber-500' : 'text-neutral-500'}`} />
+    ),
+  },
+  {
+    label: 'Kategorije',
+    path: '/admin/categories',
+    icon: (isActive) => (
+      <TbCategory2 className={`text-xl ${isActive ? 'text-amber-500' : 'text-neutral-500'}`} />
     ),
   },
 ];
