@@ -1,48 +1,53 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { FiSearch } from 'react-icons/fi'
 import { IoIosAddCircleOutline } from 'react-icons/io'
 import BrandCard from '../../components/admin/BrandCard'
-
-interface Brand {
-  id: number
-  name: string
-  logo: string
-}
-
-const MOCK_BRANDS: Brand[] = [
-  { id: 1, name: 'Apple', logo: 'https://gigatron.rs/shared-assets/images/brands/apple.svg' },
-  { id: 2, name: 'Samsung', logo: 'https://gigatron.rs/shared-assets/images/brands/samsung.svg' },
-  { id: 3, name: 'Lenovo', logo: 'https://gigatron.rs/shared-assets/images/brands/lenovo.svg' },
-  { id: 4, name: 'Asus', logo: 'https://gigatron.rs/shared-assets/images/brands/asus.svg' },
-  { id: 5, name: 'Dell', logo: 'https://gigatron.rs/shared-assets/images/brands/dell.svg' },
-  { id: 6, name: 'HP', logo: 'https://gigatron.rs/shared-assets/images/brands/hp.svg' },
-  { id: 7, name: 'MSI', logo: 'https://gigatron.rs/shared-assets/images/brands/msi.svg' },
-  { id: 8, name: 'Acer', logo: 'https://gigatron.rs/shared-assets/images/brands/acer.svg' },
-]
+import BrandDialog from '../../dialogs/BrandDialog'
+import ConfirmationDialog from '../../dialogs/ConfirmationDialog'
+import { brandService } from '../../services/brandService'
+import type { BrandDTO } from '../../types/brand'
 
 const SORT_OPTIONS = ['Naziv A-Z', 'Naziv Z-A']
 
 const BrandsPage = () => {
+  const [brands, setBrands] = useState<BrandDTO[]>([])
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('Naziv A-Z')
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editBrand, setEditBrand] = useState<BrandDTO | null>(null)
+  const [deleteBrand, setDeleteBrand] = useState<BrandDTO | null>(null)
+
+  useEffect(() => {
+    brandService.getAll().then(setBrands).catch(console.error)
+  }, [])
+
+  const handleDelete = () => {
+    if (!deleteBrand) return
+    brandService.delete(deleteBrand.brandId)
+      .then(() => {
+        setBrands((prev) => prev.filter((b) => b.brandId !== deleteBrand.brandId))
+        setDeleteBrand(null)
+      })
+      .catch(console.error)
+  }
 
   const filtered = useMemo(() => {
-    let list = [...MOCK_BRANDS]
+    let list = [...brands]
 
     if (search.trim()) {
       list = list.filter((b) =>
-        b.name.toLowerCase().includes(search.toLowerCase())
+        b.brandName.toLowerCase().includes(search.toLowerCase())
       )
     }
 
     if (sort === 'Naziv Z-A') {
-      list.sort((a, b) => b.name.localeCompare(a.name))
+      list.sort((a, b) => b.brandName.localeCompare(a.brandName))
     } else {
-      list.sort((a, b) => a.name.localeCompare(b.name))
+      list.sort((a, b) => a.brandName.localeCompare(b.brandName))
     }
 
     return list
-  }, [search, sort])
+  }, [brands, search, sort])
 
   return (
     <div className="p-8 flex flex-col gap-6">
@@ -51,7 +56,10 @@ const BrandsPage = () => {
           <h1 className="text-2xl font-bold text-neutral-800">Brendovi</h1>
           <span className="text-sm text-gray-400">{filtered.length} brendova</span>
         </div>
-        <button className="bg-blue-500 px-5 py-1.5 text-white rounded-md cursor-pointer flex items-center gap-2">
+        <button
+          onClick={() => setAddDialogOpen(true)}
+          className="bg-blue-500 px-5 py-1.5 text-white rounded-md cursor-pointer flex items-center gap-2"
+        >
           <IoIosAddCircleOutline />
           Dodaj brend
         </button>
@@ -82,11 +90,45 @@ const BrandsPage = () => {
 
       <div className="grid grid-cols-6 gap-4">
         {filtered.map((brand) => (
-          <BrandCard key={brand.id} name={brand.name} logo={brand.logo} />
+          <BrandCard
+            key={brand.brandId}
+            name={brand.brandName}
+            logo={brand.brandImage}
+            onEdit={() => setEditBrand(brand)}
+            onDelete={() => setDeleteBrand(brand)}
+          />
         ))}
       </div>
+
+      {addDialogOpen && (
+        <BrandDialog
+          action="insert"
+          onClose={() => setAddDialogOpen(false)}
+          onSaved={(brand) => setBrands((prev) => [...prev, brand])}
+        />
+      )}
+
+      {editBrand && (
+        <BrandDialog
+          action="edit"
+          brand={editBrand}
+          onClose={() => setEditBrand(null)}
+          onSaved={(updated) => setBrands((prev) => prev.map((b) => b.brandId === updated.brandId ? updated : b))}
+        />
+      )}
+
+      {deleteBrand && (
+        <ConfirmationDialog
+          title="Obriši brend"
+          text={`Da li ste sigurni da želite da obrišete brend "${deleteBrand.brandName}"?`}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteBrand(null)}
+        />
+      )}
     </div>
   )
 }
+
+//https://app.diagrams.net/?src=about#G14sj6FCBAQhyGZW9KX74KD73x8I5Sr1sv#%7B%22pageId%22%3A%22PHYEedAWp7XTAr94eW8Z%22%7D
 
 export default BrandsPage
