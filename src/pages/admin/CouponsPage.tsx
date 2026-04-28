@@ -61,7 +61,7 @@ const CouponsPage = () => {
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
+      <div className="bg-white rounded-xl border border-neutral-300 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 text-left text-gray-400 font-medium">
