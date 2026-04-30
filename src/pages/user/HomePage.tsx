@@ -3,11 +3,13 @@ import promoImage from '../../assets/banners/image (8).webp';
 import ProductVerticalCard from '../../components/shared/ProductVerticalCard';
 import CategoryCard from '../../components/shared/CategoryCard';
 import BrandsCard from '../../components/shared/BrandsCard';
-import { categories } from '../../mockData/categories';
+import { useCategories } from '../../hooks/useCategories';
 import { brands } from '../../mockData/brands';
 import { products } from '../../mockData/products';
 
 const HomePage = () => {
+  const { data: categories = [] } = useCategories()
+
   return (
     <div className="bg-neutral-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
@@ -17,10 +19,10 @@ const HomePage = () => {
                     <BannerSlider />
                 </div>
                 <div className="md:w-1/3 lg:w-1/4 h-[200px] md:h-[400px]">
-                    <img 
-                        src={promoImage} 
-                        alt="Promo" 
-                        className="w-full h-full object-cover rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer" 
+                    <img
+                        src={promoImage}
+                        alt="Promo"
+                        className="w-full h-full object-cover rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     />
                 </div>
             </div>
@@ -33,7 +35,7 @@ const HomePage = () => {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                     {categories.map(cat => (
-                        <CategoryCard key={cat.id} name={cat.name} slug={cat.slug} />
+                        <CategoryCard key={cat.categoryId} id={cat.categoryId} name={cat.name} />
                     ))}
                 </div>
             </section>
@@ -46,12 +48,13 @@ const HomePage = () => {
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {products.map(product => (
-                        <ProductVerticalCard 
+                        <ProductVerticalCard
                             key={product.id}
                             name={product.name}
                             price={product.price}
                             oldPrice={product.oldPrice}
                             image={product.image}
+                            slug={product.id.toString()}
                         />
                     ))}
                 </div>

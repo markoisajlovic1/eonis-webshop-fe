@@ -100,7 +100,7 @@ const ProductsPage = () => {
                 >
                   <td className="px-6 py-4 font-semibold">{product.productName}</td>
                   <td className="px-6 py-4">{product.price.toLocaleString('sr-RS')} RSD</td>
-                  <td className="px-6 py-4">{product.stock}</td>
+                  <td className="px-6 py-4">{product.quantity}</td>
                   <td className="px-6 py-4 flex justify-end gap-2">
                     <FiEdit2 />
                     <FiTrash2 />

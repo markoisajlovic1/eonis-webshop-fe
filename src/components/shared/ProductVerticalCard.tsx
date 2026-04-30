@@ -1,5 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom';
+import { FiHeart } from 'react-icons/fi';
+
 
 interface ProductVerticalCardProps {
   name: string;
@@ -13,7 +15,13 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
   const formatPrice = (p: number) => p.toLocaleString('sr-RS');
 
   return (
-    <Link to={`/proizvodi/${slug}`} className="bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
+    <Link to={`/proizvodi/${slug}`} className="relative bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
+      <button
+        onClick={(e) => e.preventDefault()}
+        className="absolute top-3 right-3 z-10 w-9 h-9 bg-yellow-400 border-neutral-200 rounded-full flex items-center cursor-pointer justify-center text-white hover:bg-yellow-600 transition-all shadow-sm"
+      >
+        <FiHeart size={16} />
+      </button>
       <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-50 flex items-center justify-center p-4">
         <img 
           src={image} 

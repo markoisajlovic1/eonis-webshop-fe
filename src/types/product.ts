@@ -3,6 +3,7 @@ export interface ProductDTO {
   productName: string
   price: number
   discount: number
+  quantity: number
   brandId: string
   desc: string
   subcategoryId: string
@@ -13,6 +14,7 @@ export interface CreateProductDTO {
   productName: string
   price: number
   discount: number
+  quantity: number
   brandId: string
   desc: string
   subcategoryId: string
@@ -23,6 +25,7 @@ export interface UpdateProductDTO {
   productName: string
   price: number
   discount: number
+  quantity: number
   brandId: string
   desc: string
   subcategoryId: string

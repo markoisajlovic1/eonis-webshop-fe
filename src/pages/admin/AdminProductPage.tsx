@@ -28,6 +28,7 @@ const AdminProductPage = () => {
   const [discount, setDiscount] = useState('')
   const [discountEnabled, setDiscountEnabled] = useState(false)
   const [desc, setDesc] = useState('')
+  const [quantity, setQuantity] = useState('')
 
   // svi izvuceni
   const [brands, setBrands] = useState<BrandDTO[]>([])
@@ -88,6 +89,7 @@ const AdminProductPage = () => {
         productName: productName.trim(),
         price: parseFloat(price),
         discount: discountEnabled ? parseInt(discount) || 0 : 0,
+        quantity: parseInt(quantity) || 0,
         brandId: selectedBrandId,
         desc: desc.trim(),
         subcategoryId: selectedSubcategoryId,
@@ -228,6 +230,19 @@ const AdminProductPage = () => {
                 {selectedSubcategory ? selectedSubcategory.name : selectedCategoryId ? '—' : 'Izaberite kategoriju'}
               </span>
             </div>
+          </div>
+
+          {/* Količina */}
+          <div className="bg-white rounded-md p-4 flex flex-col gap-1.5">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Količina</label>
+            <input
+              type="number"
+              min={0}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="0"
+              className="border border-neutral-200 rounded-md px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:border-neutral-400 transition-colors"
+            />
           </div>
         </div>
 

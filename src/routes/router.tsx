@@ -16,6 +16,7 @@ import CouponsPage from '../pages/admin/CouponsPage';
 import ProductPage from '../pages/user/ProductPage';
 import BrandsPage from '../pages/admin/BrandsPage';
 import CategoriesPage from '../pages/admin/CategoriesPage';
+import CartPage from '../pages/user/CartPage';
 
 export const router = createBrowserRouter([
     {
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
                     { path: 'orders', element: <OrdersPage /> },
                 ],
             },
+            { path: 'cart', element: <CartPage /> },
         ],
     },
     {

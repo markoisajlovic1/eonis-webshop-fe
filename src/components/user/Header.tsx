@@ -6,13 +6,28 @@ import { CgProfile } from "react-icons/cg";
 import { LuShoppingCart } from "react-icons/lu";
 import { AiOutlineMenu } from "react-icons/ai";
 import { FiHeart } from "react-icons/fi";
-import { categories } from '../../mockData/categories';
+import { useCategories } from '../../hooks/useCategories';
+import { productService } from '../../services/productService';
+import type { ProductDTO } from '../../types/product';
 import type { RootState } from '../../store/store';
 
 const Header: React.FC = () => {
   const { username } = useSelector((state: RootState) => state.auth);
+  const { data: categories = [] } = useCategories();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchedProducts, setSearchedProducts] = useState<ProductDTO[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearch = (term: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!term.trim()) { setSearchedProducts([]); return }
+    debounceRef.current = setTimeout(() => {
+      productService.search(term.trim())
+        .then(setSearchedProducts)
+        .catch(console.error)
+    }, 400)
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -31,7 +46,7 @@ const Header: React.FC = () => {
   }, [isMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between px-8 py-3 bg-black backdrop-blur-md border-b border-neutral-100 font-sans">
+    <header className="sticky top-0 z-9999 flex items-center justify-between px-8 py-3 bg-black backdrop-blur-md border-b border-neutral-100 font-sans">
       {/* Left side: Logo */}
       <div className="w-48 flex items-center gap-2 relative">
         <Link to="/" className="text-2xl font-extrabold text-white bg-clip-text cursor-pointer">
@@ -55,8 +70,8 @@ const Header: React.FC = () => {
               <div className="py-2 flex flex-col">
                 {categories.map((cat) => (
                   <Link
-                    key={cat.id}
-                    to={`/${cat.slug}`}
+                    key={cat.categoryId}
+                    to={`/catalog/${cat.categoryId}`}
                     onClick={() => setIsMenuOpen(false)}
                     className="px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-black hover:pl-6 transition-all border-l-4 border-transparent hover:border-yellow-500 font-medium"
                   >
@@ -72,7 +87,7 @@ const Header: React.FC = () => {
         
 
       {/* Middle: Search Bar */}
-      <SearchBar />
+      <SearchBar searchedProducts={searchedProducts} onSearch={handleSearch} />
 
       {/* Right side: Auth Buttons */}
       <div className="flex items-center gap-3">
@@ -100,10 +115,10 @@ const Header: React.FC = () => {
             <span className='text-white font-light'>Prijavi se</span>
           </Link>
         )}
-        <button className="px-5 py-2 text-sm font-semibold text-white bg-black rounded-lg hover:bg-neutral-800 hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-black/10 transition-all flex items-center gap-2 cursor-pointer">
+        <Link to={"/cart"} className="px-5 py-2 text-sm font-semibold text-white bg-black rounded-lg hover:bg-neutral-800 hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-black/10 transition-all flex items-center gap-2 cursor-pointer">
           <LuShoppingCart className='text-white text-xl'/>
           <span className='text-white font-light'>Korpa</span>
-        </button>
+        </Link>
       </div>
     </header>
   );

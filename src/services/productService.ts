@@ -46,6 +46,17 @@ class ProductService {
     }
   }
 
+  async search(term: string): Promise<ProductDTO[]> {
+    try {
+      const { data } = await axiosInstance.get<ProductDTO[]>(`${this.ENDPOINT}/search`, {
+        params: { term },
+      })
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
   async create(dto: CreateProductDTO): Promise<ProductDTO> {
     try {
       const { data } = await axiosInstance.post<ProductDTO>(this.ENDPOINT, dto)
