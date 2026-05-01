@@ -7,9 +7,11 @@ const AdminLayout = () => {
     <div className="flex min-h-screen bg-neutral-100">
       <AdminSidebar />
       
-      <main className="flex-1">
+      <main className="flex-1 h-screen flex flex-col">
         <AdminHeader />
-        <Outlet />
+        <div className="flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -17,6 +17,8 @@ import ProductPage from '../pages/user/ProductPage';
 import BrandsPage from '../pages/admin/BrandsPage';
 import CategoriesPage from '../pages/admin/CategoriesPage';
 import CartPage from '../pages/user/CartPage';
+import UsersPage from '../pages/admin/UsersPage';
+import AdminOrdersPage from '../pages/admin/OrdersPage'
 
 export const router = createBrowserRouter([
     {
@@ -53,6 +55,8 @@ export const router = createBrowserRouter([
                     { path: 'coupons', element: <CouponsPage /> },
                     { path: 'brands', element: <BrandsPage /> },
                     { path: 'categories', element: <CategoriesPage /> },
+                    { path: 'orders', element: <AdminOrdersPage /> },
+                    { path: 'users', element: <UsersPage /> },
                 ],
             },
         ],

@@ -5,6 +5,8 @@ import type {
   CreateProductDTO,
   UpdateProductDTO,
   ProductError,
+  ProductFilterParams,
+  ProductFilterResult,
 } from '../types/product'
 
 class ProductService {
@@ -40,6 +42,17 @@ class ProductService {
   async getBySubcategoryId(subcategoryId: string): Promise<ProductDTO[]> {
     try {
       const { data } = await axiosInstance.get<ProductDTO[]>(`${this.ENDPOINT}/subcategory/${subcategoryId}`)
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async filter(params: ProductFilterParams): Promise<ProductFilterResult> {
+    try {
+      const { data } = await axiosInstance.get<ProductFilterResult>(`${this.ENDPOINT}/filter`, {
+        params,
+      })
       return data
     } catch (error) {
       throw this.handleError(error)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { IoTrashBinOutline, IoChevronBack } from "react-icons/io5"
 import { LiaExchangeAltSolid } from "react-icons/lia"
 import { brandService } from "../../services/brandService"
@@ -17,8 +17,12 @@ type DialogType = 'brand' | 'category' | 'subcategory' | null
 
 const AdminProductPage = () => {
   const navigate = useNavigate()
+  const { productId: id } = useParams<{ productId: string }>()
+  const isEdit = !!id
+
   const [openDialog, setOpenDialog] = useState<DialogType>(null)
   const [publishing, setPublishing] = useState(false)
+  const [loadingProduct, setLoadingProduct] = useState(isEdit)
 
   const [images, setImages] = useState<(string | null)[]>(Array(MAX_IMAGES).fill(null))
   const [imageDialogIndex, setImageDialogIndex] = useState<number | null>(null)
@@ -41,11 +45,55 @@ const AdminProductPage = () => {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null)
 
   useEffect(() => {
-    brandService.getAll().then(setBrands).catch(console.error)
-    categoryService.getAllCategories().then(setCategories).catch(console.error)
-  }, [])
+    // ako nije edit mode samo vrati sve brendove i kategorije za selekt inpute
+    if (!isEdit) {
+      brandService.getAll().then(setBrands).catch(console.error)
+      categoryService.getAllCategories().then(setCategories).catch(console.error)
+      return
+    }
+
+    // fetchuje sve dostupne brendove kategorije i product po id-ju (slucaj kad sam u edit modu)
+    Promise.all([
+      brandService.getAll(),
+      categoryService.getAllCategories(),
+      categoryService.getAllSubcategories(),
+      productService.getById(id),
+    ])
+      .then(([fetchedBrands, fetchedCategories, allSubcategories, product]) => {
+        // popunjavanje state-ova
+        setBrands(fetchedBrands)
+        setCategories(fetchedCategories)
+
+        setProductName(product.productName)
+        setPrice(String(product.price))
+        setDiscount(String(product.discount))
+        setDiscountEnabled(product.discount > 0)
+        setDesc(product.desc)
+        setQuantity(String(product.quantity))
+        setSelectedBrandId(product.brandId)
+
+        const imgs: (string | null)[] = Array(MAX_IMAGES).fill(null)
+        product.images.slice(0, MAX_IMAGES).forEach((url, i) => { imgs[i] = url })
+        setImages(imgs)
+
+        const subcat = allSubcategories.find((s) => s.subcategoryId === product.subcategoryId)
+
+        if (subcat) {
+          setSelectedCategoryId(subcat.categoryId)
+          categoryService.getSubcategoriesByCategoryId(subcat.categoryId)
+            .then((subs) => {
+              setSubcategories(subs)
+              setSelectedSubcategoryId(product.subcategoryId)
+            })
+            .catch(console.error)
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoadingProduct(false))
+  }, [id, isEdit])
 
   useEffect(() => {
+    if (isEdit) return
     if (!selectedCategoryId) {
       setSubcategories([])
       setSelectedSubcategoryId(null)
@@ -54,7 +102,7 @@ const AdminProductPage = () => {
     categoryService.getSubcategoriesByCategoryId(selectedCategoryId)
       .then(setSubcategories)
       .catch(console.error)
-  }, [selectedCategoryId])
+  }, [selectedCategoryId, isEdit])
 
   const selectedBrand = brands.find((b) => b.brandId === selectedBrandId) ?? null
   const selectedCategory = categories.find((c) => c.categoryId === selectedCategoryId) ?? null
@@ -84,23 +132,36 @@ const AdminProductPage = () => {
   const handlePublish = async () => {
     if (!productName.trim() || !price || !selectedBrandId || !selectedSubcategoryId) return
     setPublishing(true)
+    const dto = {
+      productName: productName.trim(),
+      price: parseFloat(price),
+      discount: discountEnabled ? parseInt(discount) || 0 : 0,
+      quantity: parseInt(quantity) || 0,
+      brandId: selectedBrandId,
+      desc: desc.trim(),
+      subcategoryId: selectedSubcategoryId,
+      productImageUrls: images.filter((img): img is string => img !== null),
+    }
     try {
-      await productService.create({
-        productName: productName.trim(),
-        price: parseFloat(price),
-        discount: discountEnabled ? parseInt(discount) || 0 : 0,
-        quantity: parseInt(quantity) || 0,
-        brandId: selectedBrandId,
-        desc: desc.trim(),
-        subcategoryId: selectedSubcategoryId,
-        productImageUrls: images.filter((img): img is string => img !== null),
-      })
+      if (isEdit && id) {
+        await productService.update(id, dto)
+      } else {
+        await productService.create(dto)
+      }
       navigate(-1)
     } catch (error) {
       console.error(error)
     } finally {
       setPublishing(false)
     }
+  }
+
+  if (loadingProduct) {
+    return (
+      <div className="flex items-center justify-center py-20 text-sm text-gray-400">
+        Učitavanje...
+      </div>
+    )
   }
 
   return (
@@ -112,7 +173,7 @@ const AdminProductPage = () => {
             <IoChevronBack />
           </button>
           <div>
-            <h2 className="text-xl">Novi proizvod</h2>
+            <h2 className="text-xl">{isEdit ? 'Izmeni proizvod' : 'Novi proizvod'}</h2>
           </div>
         </div>
         <div className="flex items-center gap-3">

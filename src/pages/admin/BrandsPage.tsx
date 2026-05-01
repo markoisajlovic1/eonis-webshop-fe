@@ -1,60 +1,78 @@
-import { useState, useMemo, useEffect } from 'react'
-import { FiSearch } from 'react-icons/fi'
+import { useState, useEffect, useCallback } from 'react'
+import { FiSearch, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { IoIosAddCircleOutline } from 'react-icons/io'
 import BrandCard from '../../components/admin/BrandCard'
 import BrandDialog from '../../dialogs/BrandDialog'
 import ConfirmationDialog from '../../dialogs/ConfirmationDialog'
 import { brandService } from '../../services/brandService'
-import type { BrandDTO } from '../../types/brand'
+import type { BrandDTO, BrandSort } from '../../types/brand'
+
+const PAGE_SIZE = 12
 
 const SORT_OPTIONS = ['Naziv A-Z', 'Naziv Z-A']
+const SORT_MAP: Record<string, BrandSort> = {
+  'Naziv A-Z': 'NameAsc',
+  'Naziv Z-A': 'NameDesc',
+}
 
 const BrandsPage = () => {
   const [brands, setBrands] = useState<BrandDTO[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState('Naziv A-Z')
+  const [page, setPage] = useState(1)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [editBrand, setEditBrand] = useState<BrandDTO | null>(null)
   const [deleteBrand, setDeleteBrand] = useState<BrandDTO | null>(null)
 
+  const fetchBrands = useCallback((pageNumber: number) => {
+    setLoading(true)
+    brandService.filter({
+      term: search.trim() || undefined,
+      sort: SORT_MAP[sort] ?? 'NameAsc',
+      pageNumber,
+      pageSize: PAGE_SIZE,
+    })
+      .then((result) => {
+        setBrands(result.items)
+        setTotalCount(result.totalCount)
+        setTotalPages(result.totalPages)
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [search, sort])
+
   useEffect(() => {
-    brandService.getAll().then(setBrands).catch(console.error)
-  }, [])
+    const timeout = setTimeout(() => fetchBrands(page), search ? 300 : 0)
+    return () => clearTimeout(timeout)
+  }, [fetchBrands, search, page])
+
+  // Reset na prvu stranu kad se promene filteri
+  const handleSearchChange = (v: string) => { setSearch(v); setPage(1) }
+  const handleSortChange = (v: string) => { setSort(v); setPage(1) }
 
   const handleDelete = () => {
     if (!deleteBrand) return
     brandService.delete(deleteBrand.brandId)
       .then(() => {
-        setBrands((prev) => prev.filter((b) => b.brandId !== deleteBrand.brandId))
         setDeleteBrand(null)
+        if (brands.length === 1 && page > 1) {
+          setPage((p) => p - 1)
+        } else {
+          fetchBrands(page)
+        }
       })
       .catch(console.error)
   }
-
-  const filtered = useMemo(() => {
-    let list = [...brands]
-
-    if (search.trim()) {
-      list = list.filter((b) =>
-        b.brandName.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-
-    if (sort === 'Naziv Z-A') {
-      list.sort((a, b) => b.brandName.localeCompare(a.brandName))
-    } else {
-      list.sort((a, b) => a.brandName.localeCompare(b.brandName))
-    }
-
-    return list
-  }, [brands, search, sort])
 
   return (
     <div className="p-8 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-neutral-800">Brendovi</h1>
-          <span className="text-sm text-gray-400">{filtered.length} brendova</span>
+          <span className="text-sm text-gray-400">{totalCount} brendova</span>
         </div>
         <button
           onClick={() => setAddDialogOpen(true)}
@@ -72,14 +90,14 @@ const BrandsPage = () => {
             type="text"
             placeholder="Pretraži brendove..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-sm placeholder:text-gray-400 outline-none focus:border-amber-400 transition-all"
           />
         </div>
 
         <select
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => handleSortChange(e.target.value)}
           className="px-4 py-2.5 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-700 outline-none cursor-pointer"
         >
           {SORT_OPTIONS.map((opt) => (
@@ -88,23 +106,66 @@ const BrandsPage = () => {
         </select>
       </div>
 
-      <div className="grid grid-cols-6 gap-4">
-        {filtered.map((brand) => (
-          <BrandCard
-            key={brand.brandId}
-            name={brand.brandName}
-            logo={brand.brandImage}
-            onEdit={() => setEditBrand(brand)}
-            onDelete={() => setDeleteBrand(brand)}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20 text-sm text-gray-400">
+          Učitavanje...
+        </div>
+      ) : brands.length === 0 ? (
+        <div className="flex items-center justify-center py-20 text-sm text-gray-400">
+          Nema brendova u bazi
+        </div>
+      ) : (
+        <div className="grid grid-cols-6 gap-4">
+          {brands.map((brand) => (
+            <BrandCard
+              key={brand.brandId}
+              name={brand.brandName}
+              logo={brand.brandImage}
+              onEdit={() => setEditBrand(brand)}
+              onDelete={() => setDeleteBrand(brand)}
+            />
+          ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            <FiChevronLeft size={16} />
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                ${p === page
+                  ? 'bg-blue-500 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'}`}
+            >
+              {p}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            <FiChevronRight size={16} />
+          </button>
+        </div>
+      )}
 
       {addDialogOpen && (
         <BrandDialog
           action="insert"
           onClose={() => setAddDialogOpen(false)}
-          onSaved={(brand) => setBrands((prev) => [...prev, brand])}
+          onSaved={() => fetchBrands(page)}
         />
       )}
 
@@ -113,7 +174,7 @@ const BrandsPage = () => {
           action="edit"
           brand={editBrand}
           onClose={() => setEditBrand(null)}
-          onSaved={(updated) => setBrands((prev) => prev.map((b) => b.brandId === updated.brandId ? updated : b))}
+          onSaved={() => { setEditBrand(null); fetchBrands(page) }}
         />
       )}
 
@@ -128,7 +189,5 @@ const BrandsPage = () => {
     </div>
   )
 }
-
-//https://app.diagrams.net/?src=about#G14sj6FCBAQhyGZW9KX74KD73x8I5Sr1sv#%7B%22pageId%22%3A%22PHYEedAWp7XTAr94eW8Z%22%7D
 
 export default BrandsPage

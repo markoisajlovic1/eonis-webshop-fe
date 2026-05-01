@@ -14,6 +14,17 @@ class AuthService {
   private readonly AUTH_ENDPOINT = '/api/Auth';
   private accessToken: string | null = null;
   private username: string | null = null;
+  private initPromise: Promise<void> | null = null;
+
+  // Called once on app boot — silently restores session from HTTP-only refresh token cookie
+  initialize(): Promise<void> {
+    if (!this.initPromise) {
+      this.initPromise = this.refreshToken()
+        .then(() => {})
+        .catch(() => {});
+    }
+    return this.initPromise;
+  }
 
   async login(email: string, password: string): Promise<void> {
     try {

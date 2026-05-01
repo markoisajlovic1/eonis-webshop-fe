@@ -1,9 +1,18 @@
 import axiosInstance from './api/axiosInstance'
 import { AxiosError } from 'axios'
-import type { CouponDTO, CreateCouponDTO, UpdateCouponDTO, CouponError } from '../types/coupon'
+import type { CouponDTO, CreateCouponDTO, UpdateCouponDTO, CouponError, CouponFilterParams, CouponFilterResult } from '../types/coupon'
 
 class CouponService {
   private readonly ENDPOINT = '/api/DiscountCode'
+
+  async filter(params: CouponFilterParams): Promise<CouponFilterResult> {
+    try {
+      const { data } = await axiosInstance.get<CouponFilterResult>(`${this.ENDPOINT}/filter`, { params })
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
 
   async getAll(): Promise<CouponDTO[]> {
     try {

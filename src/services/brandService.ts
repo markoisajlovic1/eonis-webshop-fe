@@ -1,9 +1,18 @@
 import axiosInstance from './api/axiosInstance';
 import { AxiosError } from 'axios';
-import type { BrandDTO, CreateBrandDTO, UpdateBrandDTO, BrandError } from '../types/brand';
+import type { BrandDTO, CreateBrandDTO, UpdateBrandDTO, BrandError, BrandFilterParams, BrandFilterResult } from '../types/brand';
 
 class BrandService {
   private readonly ENDPOINT = '/api/Brand';
+
+  async filter(params: BrandFilterParams): Promise<BrandFilterResult> {
+    try {
+      const { data } = await axiosInstance.get<BrandFilterResult>(`${this.ENDPOINT}/filter`, { params });
+      return data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 
   async getAll(): Promise<BrandDTO[]> {
     try {

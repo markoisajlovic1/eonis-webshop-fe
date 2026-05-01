@@ -21,3 +21,20 @@ export interface BrandError {
   message: string
   statusCode?: number
 }
+
+export type BrandSort = 'NameAsc' | 'NameDesc'
+
+export interface BrandFilterParams {
+  term?: string
+  sort?: BrandSort
+  pageNumber?: number
+  pageSize?: number
+}
+
+export interface BrandFilterResult {
+  items: BrandDTO[]
+  totalCount: number
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+}

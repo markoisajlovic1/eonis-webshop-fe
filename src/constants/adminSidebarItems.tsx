@@ -2,6 +2,8 @@ import { FiGrid, FiBox, FiTag } from 'react-icons/fi'
 import { TbBrandSketch, TbCategory2 } from 'react-icons/tb'
 import { LiaShippingFastSolid } from 'react-icons/lia'
 import { type ReactNode } from 'react'
+import { FiUsers } from "react-icons/fi";
+
 
 export interface AdminSidebarItem {
   label: string
@@ -52,6 +54,13 @@ export const ADMIN_SIDEBAR_ITEMS: AdminSidebarItem[] = [
     path: '/admin/orders',
     icon: (isActive) => (
       <LiaShippingFastSolid className={`text-xl ${isActive ? 'text-amber-500' : 'text-neutral-500'}`} />
+    ),
+  },
+  {
+    label: 'Korisnici',
+    path: '/admin/users',
+    icon: (isActive) => (
+      <FiUsers className={`text-xl ${isActive ? 'text-amber-500' : 'text-neutral-500'}`} />
     ),
   },
 ]

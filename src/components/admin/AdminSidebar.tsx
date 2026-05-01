@@ -12,7 +12,7 @@ const AdminSidebar = () => {
   }
 
   return (
-    <div className="w-62 border-r border-neutral-300 bg-white flex flex-col min-h-screen justify-between">
+    <div className="w-62 sticky border-r border-neutral-300 bg-white flex flex-col h-[calc(100vh)] justify-between">
       <div className="flex flex-col">
         <div className="p-8 border-neutral-100">
           <span className="text-lg font-bold tracking-tight text-black">Admin Panel</span>
