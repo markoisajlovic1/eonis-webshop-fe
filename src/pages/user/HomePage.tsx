@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import BannerSlider from '../../components/user/BannerSlider'
 import promoImage from '../../assets/banners/image (8).webp';
 import ProductVerticalCard from '../../components/shared/ProductVerticalCard';
@@ -5,10 +6,16 @@ import CategoryCard from '../../components/shared/CategoryCard';
 import BrandsCard from '../../components/shared/BrandsCard';
 import { useCategories } from '../../hooks/useCategories';
 import { brands } from '../../mockData/brands';
-import { products } from '../../mockData/products';
+import { productService } from '../../services/productService';
+import type { ProductDTO } from '../../types/product';
 
 const HomePage = () => {
   const { data: categories = [] } = useCategories()
+  const [recommended, setRecommended] = useState<ProductDTO[]>([])
+
+  useEffect(() => {
+    productService.getRecommended().then(setRecommended).catch(console.error)
+  }, [])
 
   return (
     <div className="bg-neutral-50 min-h-screen">
@@ -46,15 +53,15 @@ const HomePage = () => {
                     <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">Preporučeni proizvodi</h2>
                     <button className="text-sm font-semibold text-neutral-500 hover:text-black transition-colors">Svi proizvodi</button>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {products.map(product => (
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                    {recommended.map(product => (
                         <ProductVerticalCard
-                            key={product.id}
-                            name={product.name}
+                            key={product.productId}
+                            name={product.productName}
                             price={product.price}
-                            oldPrice={product.oldPrice}
-                            image={product.image}
-                            slug={product.id.toString()}
+                            oldPrice={product.discount > 0 ? product.price / (1 - product.discount / 100) : undefined}
+                            image={product.images[0] ?? ''}
+                            slug={product.productId}
                         />
                     ))}
                 </div>

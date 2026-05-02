@@ -1,24 +1,20 @@
 import { Navigate, Outlet } from 'react-router-dom';
-import { authService } from '../services/authService';
-import { Role } from '../types/auth';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store/store';
+import type { Role } from '../types/auth';
 
 interface ProtectedRouteProps {
   requiredRole?: Role;
 }
 
 const ProtectedRoute = ({ requiredRole }: ProtectedRouteProps) => {
-  const isAuthenticated = authService.isAuthenticated();
+  const { initializing, isAuthenticated, role } = useSelector((state: RootState) => state.auth);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (initializing) return null;
 
-  if (requiredRole) {
-    const role = authService.getRole();
-    if (role !== requiredRole) {
-      return <Navigate to="/" replace />;
-    }
-  }
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
+
+  if (requiredRole && role !== requiredRole) return <Navigate to="/" replace />;
 
   return <Outlet />;
 };

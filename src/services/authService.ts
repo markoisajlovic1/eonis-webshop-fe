@@ -81,15 +81,15 @@ class AuthService {
         `${this.AUTH_ENDPOINT}/refresh`
       );
       // Update access token in memory
-      this.setToken(data.access_token);
-      return data.access_token;
+      this.setToken(data.accessToken);
+      return data.accessToken;
     } catch (error) {
       this.removeToken();
       throw this.handleError(error);
     }
   }
 
-  private setToken(token: string): void {
+  setToken(token: string): void {
     this.accessToken = token;
   }
 

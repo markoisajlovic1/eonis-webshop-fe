@@ -48,6 +48,15 @@ class ProductService {
     }
   }
 
+  async getRecommended(): Promise<ProductDTO[]> {
+    try {
+      const { data } = await axiosInstance.get<ProductDTO[]>(`${this.ENDPOINT}/recommended`)
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
   async filter(params: ProductFilterParams): Promise<ProductFilterResult> {
     try {
       const { data } = await axiosInstance.get<ProductFilterResult>(`${this.ENDPOINT}/filter`, {

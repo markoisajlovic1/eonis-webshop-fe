@@ -79,7 +79,7 @@ export interface User {
 }
 
 export interface TokenResponse {
-  access_token: string;
+  accessToken: string;
   token_type: string;
 }
 
