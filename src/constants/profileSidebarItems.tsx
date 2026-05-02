@@ -1,5 +1,7 @@
 import { FiUser, FiShoppingBag } from "react-icons/fi";
 import { type ReactNode } from "react";
+import { MdOutlineReviews } from "react-icons/md";
+
 
 export interface SidebarItem {
   label: string;
@@ -19,5 +21,10 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
     label: 'Moje porudžbine',
     path: '/profile/orders',
     icon: <FiShoppingBag className="text-xl" />
+  },
+  {
+    label: 'Moje recenzije i komentari',
+    path: '/profile/reviews',
+    icon: <MdOutlineReviews className="text-xl" />
   }
 ];

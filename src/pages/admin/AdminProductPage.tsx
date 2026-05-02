@@ -56,10 +56,9 @@ const AdminProductPage = () => {
     Promise.all([
       brandService.getAll(),
       categoryService.getAllCategories(),
-      categoryService.getAllSubcategories(),
       productService.getById(id),
     ])
-      .then(([fetchedBrands, fetchedCategories, allSubcategories, product]) => {
+      .then(([fetchedBrands, fetchedCategories, product]) => {
         // popunjavanje state-ova
         setBrands(fetchedBrands)
         setCategories(fetchedCategories)
@@ -73,20 +72,21 @@ const AdminProductPage = () => {
         setSelectedBrandId(product.brandId)
 
         const imgs: (string | null)[] = Array(MAX_IMAGES).fill(null)
-        product.images.slice(0, MAX_IMAGES).forEach((url, i) => { imgs[i] = url })
+        product.images
+          .slice()
+          .sort((a, b) => a.position - b.position)
+          .slice(0, MAX_IMAGES)
+          .forEach((img, i) => { imgs[i] = img.imageLink })
         setImages(imgs)
 
-        const subcat = allSubcategories.find((s) => s.subcategoryId === product.subcategoryId)
-
-        if (subcat) {
-          setSelectedCategoryId(subcat.categoryId)
-          categoryService.getSubcategoriesByCategoryId(subcat.categoryId)
-            .then((subs) => {
-              setSubcategories(subs)
-              setSelectedSubcategoryId(product.subcategoryId)
-            })
-            .catch(console.error)
-        }
+        const { subcategoryId, categoryId } = product.subcategory
+        setSelectedCategoryId(categoryId)
+        categoryService.getSubcategoriesByCategoryId(categoryId)
+          .then((subs) => {
+            setSubcategories(subs)
+            setSelectedSubcategoryId(subcategoryId)
+          })
+          .catch(console.error)
       })
       .catch(console.error)
       .finally(() => setLoadingProduct(false))

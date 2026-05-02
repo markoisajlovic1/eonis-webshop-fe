@@ -18,7 +18,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({ name, price, discount, 
   const inStock = quantity > 0;
 
   return (
-    <div className="top-20 rounded-md sticky bg-white p-6 flex flex-col gap-5 shadow-md">
+    <div className="top-30 rounded-md fixed bg-white p-6 flex flex-col gap-5 mx-auto w-100 shadow-md">
       <div className="flex flex-col gap-1">
         <h1 className="font-semibold text-3xl text-neutral-900 leading-snug">{name}</h1>
       </div>
@@ -56,25 +56,27 @@ const ProductActions: React.FC<ProductActionsProps> = ({ name, price, discount, 
         </div>
       </div>
 
-      <button
+      <div className='mt-10 flex flex-col gap-4'>
+        <button
         disabled={!inStock}
-        className="flex items-center justify-center gap-2 w-full py-3 bg-yellow-500 text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 hover:text-white active:bg-neutral-900 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center justify-center gap-2 w-full py-3 bg-yellow-500 text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 hover:text-white active:bg-neutral-900 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       >
-        <LuShoppingCart className="text-lg" />
-        Dodaj u korpu
-      </button>
+          <LuShoppingCart className="text-lg" />
+          Dodaj u korpu
+        </button>
 
-      <button
-        onClick={() => setWishlist((w) => !w)}
-        className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold border transition-all ${
-          wishlist
-            ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'
-            : 'bg-white border-neutral-200 text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50'
-        }`}
-      >
-        <FiHeart className={`text-lg ${wishlist ? 'fill-red-500 text-red-500' : ''}`} />
-        {wishlist ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
-      </button>
+        <button
+          onClick={() => setWishlist((w) => !w)}
+          className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${
+            wishlist
+              ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'
+              : 'bg-white border-neutral-200 text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50'
+          }`}
+        >
+          <FiHeart className={`text-lg ${wishlist ? 'fill-red-500 text-red-500' : ''}`} />
+          {wishlist ? 'Ukloni iz liste želja' : 'Dodaj u listu želja'}
+        </button>
+      </div>
     </div>
   );
 };

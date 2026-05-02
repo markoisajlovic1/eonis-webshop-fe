@@ -60,7 +60,7 @@ const HomePage = () => {
                             name={product.productName}
                             price={product.price}
                             oldPrice={product.discount > 0 ? product.price / (1 - product.discount / 100) : undefined}
-                            image={product.images[0] ?? ''}
+                            image={product.images[0]?.imageLink ?? ''}
                             slug={product.productId}
                         />
                     ))}

@@ -96,7 +96,7 @@ const ProductsPage = () => {
           {products.map((p) => (
             <div key={p.productId} className="border rounded-xl p-4 bg-white">
               <h3 className="font-medium">{p.productName}</h3>
-              <p className="text-sm text-gray-500">{p.subcategoryId}</p>
+              <p className="text-sm text-gray-500">{p.subcategory.subcategoryName}</p>
               <p className="font-semibold mt-2">{p.price.toLocaleString('sr-RS')} RSD</p>
             </div>
           ))}

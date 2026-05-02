@@ -40,19 +40,23 @@ const ProductPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col gap-6">
       <nav className="text-xs text-neutral-400 flex flex-wrap gap-0.5">
-        <span>Početna<span className="mx-1">›</span></span>
-        <span className="text-neutral-800 font-medium">{product.productName}</span>
+        {['Početna', product.subcategory.categoryName, product.subcategory.subcategoryName, product.productName].map((crumb, i, arr) => (
+          <span key={i} className={i === arr.length - 1 ? 'text-neutral-800 font-medium' : ''}>
+            {crumb}
+            {i < arr.length - 1 && <span className="mx-1">›</span>}
+          </span>
+        ))}
       </nav>
 
       <div className="flex gap-8 items-start">
         <div className="flex flex-col gap-6 flex-1 min-w-0">
-          <ProductGallery images={product.images} />
+          <ProductGallery images={product.images.slice().sort((a, b) => a.position - b.position).map(img => img.imageLink)} />
           <ProductDetails desc={product.desc} />
-          <ProductReviews />
-          <ProductComments />
+          <ProductReviews productId={product.productId} />
+          <ProductComments productId={product.productId} />
         </div>
 
-        <div className="w-80 shrink-0">
+        <div className="w-100 h-full flex items-center relative shrink-0">
           <ProductActions
             name={product.productName}
             price={product.price}

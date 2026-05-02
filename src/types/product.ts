@@ -1,3 +1,17 @@
+export interface ImageDTO {
+  imageId: string
+  productId: string
+  imageLink: string
+  position: number
+}
+
+export interface ProductCategoryInfoDTO {
+  subcategoryId: string
+  subcategoryName: string
+  categoryId: string
+  categoryName: string
+}
+
 export interface ProductDTO {
   productId: string
   productName: string
@@ -6,8 +20,9 @@ export interface ProductDTO {
   quantity: number
   brandId: string
   desc: string
-  subcategoryId: string
-  images: string[]
+  subcategory: ProductCategoryInfoDTO
+  isPublished: boolean
+  images: ImageDTO[]
 }
 
 export interface CreateProductDTO {

@@ -1,23 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaStar } from 'react-icons/fa';
+import { reviewService } from '../../services/reviewService';
+import type { ProductReviewAveragesDTO } from '../../types/review';
 
-const RATING_DISTRIBUTION = [
-  { stars: 5, count: 184 },
-  { stars: 4, count: 97 },
-  { stars: 3, count: 32 },
-  { stars: 2, count: 14 },
-  { stars: 1, count: 9 },
-];
-
-const CATEGORY_RATINGS = [
-  { label: 'Performanse', score: 4.7 },
-  { label: 'Kvalitet', score: 4.5 },
-  { label: 'Dizajn', score: 4.3 },
-];
-
-const total = RATING_DISTRIBUTION.reduce((sum, r) => sum + r.count, 0);
-const average =
-  RATING_DISTRIBUTION.reduce((sum, r) => sum + r.stars * r.count, 0) / total;
+interface ProductReviewsProps {
+  productId: string;
+}
 
 const Stars: React.FC<{ value: number; small?: boolean }> = ({ value, small }) => (
   <div className={`flex gap-0.5 ${small ? 'text-xs' : 'text-sm'}`}>
@@ -30,24 +18,44 @@ const Stars: React.FC<{ value: number; small?: boolean }> = ({ value, small }) =
   </div>
 );
 
-const ProductReviews: React.FC = () => {
+const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
+  const [averages, setAverages] = useState<ProductReviewAveragesDTO | null>(null);
+
+  useEffect(() => {
+    reviewService.getAverages(productId).then(setAverages).catch(console.error);
+  }, [productId]);
+
+  if (!averages) return null;
+
+  const categoryRatings = [
+    { label: 'Performanse', score: averages.performanceGrade, counts: averages.performanceCounts },
+    { label: 'Kvalitet', score: averages.qualityGrade, counts: averages.qualityCounts },
+    { label: 'Dizajn', score: averages.designGrade, counts: averages.designCounts },
+  ];
+
+  const totalVotes = Object.values(averages.qualityCounts).reduce((sum, v) => sum + v, 0);
+
+  const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => ({
+    stars,
+    count: averages.qualityCounts[String(stars)] ?? 0,
+  }));
+
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-xs p-6">
       <h2 className="text-base font-bold text-neutral-900 mb-5">Ocene korisnika</h2>
 
       <div className="flex gap-10">
-        {/* Left: average + bar chart */}
         <div className="flex flex-col items-center gap-1 min-w-[90px]">
           <span className="text-5xl font-extrabold text-neutral-900 leading-none">
-            {average.toFixed(1)}
+            {averages.totalGrade.toFixed(1)}
           </span>
-          <Stars value={average} />
-          <span className="text-xs text-neutral-400 mt-1">{total} ocena</span>
+          <Stars value={averages.totalGrade} />
+          <span className="text-xs text-neutral-400 mt-1">{totalVotes} ocena</span>
         </div>
 
         <div className="flex flex-col gap-2 flex-1">
-          {RATING_DISTRIBUTION.map(({ stars, count }) => {
-            const pct = Math.round((count / total) * 100);
+          {ratingDistribution.map(({ stars, count }) => {
+            const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
             return (
               <div key={stars} className="flex items-center gap-3">
                 <span className="text-xs text-neutral-500 w-5 text-right">{stars}</span>
@@ -64,9 +72,8 @@ const ProductReviews: React.FC = () => {
           })}
         </div>
 
-        {/* Right: category scores */}
         <div className="flex flex-col gap-4 min-w-[130px]">
-          {CATEGORY_RATINGS.map(({ label, score }) => (
+          {categoryRatings.map(({ label, score }) => (
             <div key={label} className="flex flex-col gap-1">
               <span className="text-xs text-neutral-500 font-medium">{label}</span>
               <div className="flex items-center gap-2">
