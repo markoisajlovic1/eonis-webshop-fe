@@ -4,6 +4,7 @@ import { authService, CLAIMS } from '../../services/authService';
 
 interface AuthState {
   isAuthenticated: boolean;
+  userId: string | null;
   username: string | null;
   email: string | null;
   role: Role | null;
@@ -12,6 +13,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   isAuthenticated: false,
+  userId: null,
   username: null,
   email: null,
   role: null,
@@ -24,6 +26,7 @@ export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
   const decoded = authService.getUserFromToken();
   if (!decoded) throw new Error('Invalid token');
   return {
+    userId: (decoded[CLAIMS.ID] as string) ?? '',
     username: (decoded[CLAIMS.NAME] as string) ?? '',
     email: (decoded[CLAIMS.EMAIL] as string) ?? '',
     role: authService.getRole()!,
@@ -34,14 +37,16 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    loginSuccess(state, action: PayloadAction<{ username: string; email: string; role: Role }>) {
+    loginSuccess(state, action: PayloadAction<{ userId: string; username: string; email: string; role: Role }>) {
       state.isAuthenticated = true;
+      state.userId = action.payload.userId;
       state.username = action.payload.username;
       state.email = action.payload.email;
       state.role = action.payload.role;
     },
     logoutSuccess(state) {
       state.isAuthenticated = false;
+      state.userId = null;
       state.username = null;
       state.email = null;
       state.role = null;
@@ -51,6 +56,7 @@ const authSlice = createSlice({
     builder
       .addCase(initializeAuth.fulfilled, (state, action) => {
         state.isAuthenticated = true;
+        state.userId = action.payload.userId;
         state.username = action.payload.username;
         state.email = action.payload.email;
         state.role = action.payload.role;

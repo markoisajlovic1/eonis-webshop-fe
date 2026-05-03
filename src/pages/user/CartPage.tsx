@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FiTrash2 } from 'react-icons/fi'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../store/store'
+import { cartService } from '../../services/cartService/cartService'
+import { cartServiceLS } from '../../services/cartService/cartServiceLS'
+import { productService } from '../../services/productService'
+import { paymentService } from '../../services/paymentService'
 
-interface CartItem {
-  id: number
+interface CartRow {
+  productId: string
   name: string
   category: string
   price: number
@@ -10,41 +16,77 @@ interface CartItem {
   image: string
 }
 
-const mockCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: 'ASUS ROG Zephyrus G14',
-    category: 'Gaming laptopovi',
-    price: 249999,
-    quantity: 1,
-    image: 'https://gigatron.rs/_next/image?url=https%3A%2F%2Fbackend.gigatron.rs%2Fmedia%2Fcatalog%2Fproduct%2Fcache%2Fd62e1a0582bf7257bddc609f302ce89c%2F8%2F6%2F8680096106743.jpg&w=2048&q=75',
-  },
-  {
-    id: 2,
-    name: 'SAMSUNG Televizor 55 QLED Q60A',
-    category: 'Monitori',
-    price: 89999,
-    quantity: 2,
-    image: 'https://gigatron.rs/_next/image?url=https%3A%2F%2Fbackend.gigatron.rs%2Fmedia%2Fcatalog%2Fproduct%2Fcache%2Fd62e1a0582bf7257bddc609f302ce89c%2F8%2F6%2F8680096106743.jpg&w=2048&q=75',
-  },
-  {
-    id: 3,
-    name: 'APPLE iPhone 15 Pro Max 256GB',
-    category: 'Pametni telefoni',
-    price: 184999,
-    quantity: 1,
-    image: 'https://gigatron.rs/_next/image?url=https%3A%2F%2Fbackend.gigatron.rs%2Fmedia%2Fcatalog%2Fproduct%2Fcache%2Fd62e1a0582bf7257bddc609f302ce89c%2F8%2F6%2F8680096106743.jpg&w=2048&q=75',
-  },
-]
+const fmt = (n: number) => n.toLocaleString('sr-RS')
 
 const CartPage = () => {
-  const [items, setItems] = useState<CartItem[]>(mockCartItems)
+  const userId = useSelector((state: RootState) => state.auth.userId)
+  const [items, setItems] = useState<CartRow[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const removeItem = (id: number) => setItems((prev) => prev.filter((item) => item.id !== id))
+  useEffect(() => {
+    if (userId) {
+      cartService.getByUserId(userId)
+        .then(cartItems =>
+          Promise.all(
+            cartItems.map(ci =>
+              productService.getById(ci.productId).then(p => ({
+                productId: p.productId,
+                name: p.productName,
+                category: p.subcategory.subcategoryName,
+                price: p.price,
+                quantity: ci.quantity,
+                image: p.images[0]?.imageLink ?? '',
+              }))
+            )
+          )
+        )
+        .then(setItems)
+        .catch(console.error)
+        .finally(() => setLoading(false))
+    } else {
+      Promise.resolve(cartServiceLS.getAll()).then(lsItems => {
+        setItems(lsItems.map(i => ({
+          productId: i.productId,
+          name: i.productName,
+          category: '',
+          price: i.price,
+          quantity: i.quantity,
+          image: i.image,
+        })))
+        setLoading(false)
+      })
+    }
+  }, [userId])
+
+  const removeItem = (productId: string) => {
+    if (userId) {
+      cartService.remove(userId, productId).catch(console.error)
+    } else {
+      cartServiceLS.remove(productId)
+    }
+    setItems(prev => prev.filter(i => i.productId !== productId))
+  }
+
+  const clearCart = () => {
+    if (userId) {
+      items.forEach(i => cartService.remove(userId, i.productId).catch(console.error))
+    } else {
+      cartServiceLS.clear()
+    }
+    setItems([])
+  }
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
-  const fmt = (n: number) => n.toLocaleString('sr-RS')
+  const handlePay = () => {
+    if (!userId || items.length === 0) return
+    paymentService.createCheckoutSession({
+      userId,
+      items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+    })
+      .then(result => { window.location.href = result.url })
+      .catch(console.error)
+  }
 
   return (
     <div className='bg-neutral-100 min-h-screen py-10'>
@@ -57,7 +99,11 @@ const CartPage = () => {
             <span className='text-sm text-gray-400'>{items.length} stavki</span>
           </div>
 
-          {items.length === 0 ? (
+          {loading ? (
+            <div className='flex items-center justify-center py-20 text-sm text-gray-400'>
+              Učitavanje...
+            </div>
+          ) : items.length === 0 ? (
             <div className='flex items-center justify-center py-20 text-sm text-gray-400'>
               Korpa je prazna
             </div>
@@ -72,7 +118,7 @@ const CartPage = () => {
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item.id} className='border-b border-neutral-50 last:border-0'>
+                  <tr key={item.productId} className='border-b border-neutral-50 last:border-0'>
                     <td className='px-6 py-4'>
                       <div className='flex items-center gap-4'>
                         <div className='w-14 h-14 rounded-lg bg-neutral-50 border border-neutral-100 shrink-0 overflow-hidden flex items-center justify-center p-1'>
@@ -80,7 +126,9 @@ const CartPage = () => {
                         </div>
                         <div className='flex flex-col'>
                           <span className='font-medium text-neutral-800'>{item.name}</span>
-                          <span className='text-xs text-gray-400 mt-0.5'>{item.category}</span>
+                          {item.category && (
+                            <span className='text-xs text-gray-400 mt-0.5'>{item.category}</span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -92,7 +140,7 @@ const CartPage = () => {
                     <td className='px-6 py-4'>
                       <div className='flex items-center justify-end gap-4'>
                         <button
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => removeItem(item.productId)}
                           className='text-gray-300 hover:text-red-500 transition-colors cursor-pointer'
                         >
                           <FiTrash2 size={16} />
@@ -110,7 +158,17 @@ const CartPage = () => {
 
           <div className='flex items-center gap-4 p-6'>
             <button className='py-1 px-3 rounded-md border border-gray-300 cursor-pointer'>Vrati se na katalog</button>
-            <button className='bg-red-500 py-1 px-3 rounded-md text-white cursor-pointer'>Ponisti korpu</button>
+            <button
+              onClick={clearCart}
+              disabled={items.length === 0}
+              className={`py-1 px-3 rounded-md text-white ${
+                items.length === 0
+                  ? 'bg-red-300 cursor-not-allowed'
+                  : 'bg-red-500 cursor-pointer'
+              }`}
+            >
+              Poništi korpu
+            </button>
           </div>
         </div>
 
@@ -119,7 +177,7 @@ const CartPage = () => {
           <h2 className='text-lg font-semibold text-neutral-800'>Za plaćanje</h2>
           <div className='flex flex-col gap-2 text-sm text-neutral-600'>
             {items.map((item) => (
-              <div key={item.id} className='flex justify-between'>
+              <div key={item.productId} className='flex justify-between'>
                 <span className='truncate max-w-[160px] text-gray-400'>{item.name}</span>
                 <span>{fmt(item.price * item.quantity)} RSD</span>
               </div>
@@ -129,7 +187,11 @@ const CartPage = () => {
             <span>Ukupno</span>
             <span>{fmt(total)} RSD</span>
           </div>
-          <button className='w-full bg-yellow-400 hover:bg-yellow-500 transition-colors text-black font-semibold py-3 rounded-xl text-sm cursor-pointer'>
+          <button
+            onClick={handlePay}
+            disabled={items.length === 0}
+            className='w-full bg-yellow-400 hover:bg-yellow-500 transition-colors text-black font-semibold py-3 rounded-xl text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+          >
             Nastavi na plaćanje
           </button>
         </div>

@@ -19,6 +19,8 @@ import CategoriesPage from '../pages/admin/CategoriesPage';
 import CartPage from '../pages/user/CartPage';
 import UsersPage from '../pages/admin/UsersPage';
 import AdminOrdersPage from '../pages/admin/OrdersPage'
+import WishlistPage from '../pages/user/WishlistPage';
+import ReviewsPage from '../pages/user/ReviewsPage';
 
 export const router = createBrowserRouter([
     {
@@ -27,7 +29,7 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <HomePage /> },
             { path: 'auth', element: <AuthPage /> },
-            { path: ':categorySlug', element: <CatalogPage /> },
+            { path: 'catalog/:subcategorySlug', element: <CatalogPage /> },
             { path: 'proizvodi/:productSlug', element: <ProductPage /> },
             {
                 path: 'profile',
@@ -35,9 +37,11 @@ export const router = createBrowserRouter([
                 children: [
                     { index: true, element: <EditProfilePage /> },
                     { path: 'orders', element: <OrdersPage /> },
+                    { path: 'reviews', element: <ReviewsPage /> },
                 ],
             },
             { path: 'cart', element: <CartPage /> },
+            { path: 'wishlist', element: <WishlistPage /> },
         ],
     },
     {

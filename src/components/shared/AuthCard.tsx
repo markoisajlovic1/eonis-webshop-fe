@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 import type { LoginPayload, RegisterFormData } from '../../types/auth';
 import { Role } from '../../types/auth';
-import { authService } from '../../services/authService';
+import { authService, CLAIMS } from '../../services/authService';
 import { loginSuccess } from '../../store/slices/authSlice';
 import type { AppDispatch } from '../../store/store';
 
@@ -57,8 +57,10 @@ const AuthCard: React.FC = () => {
         const role = authService.getRole();
         const username = authService.getUsername();
         const email = authService.getEmail();
+        const decoded = authService.getUserFromToken();
+        const userId = decoded ? (decoded[CLAIMS.ID] as string) ?? '' : '';
         if (role && username && email) {
-          dispatch(loginSuccess({ username, email, role }));
+          dispatch(loginSuccess({ userId, username, email, role }));
         }
         toast.success('Uspešno ste se prijavili!');
         navigate(role === Role.Employee ? '/admin/dashboard' : '/');

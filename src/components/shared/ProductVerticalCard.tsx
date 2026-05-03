@@ -1,7 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom';
 import { FiHeart } from 'react-icons/fi';
-
+import { LuShoppingCart } from "react-icons/lu";
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { wishlistService } from '../../services/wishlistService';
+import { cartService } from '../../services/cartService/cartService';
+import { cartServiceLS } from '../../services/cartService/cartServiceLS';
 
 interface ProductVerticalCardProps {
   name: string;
@@ -13,11 +18,28 @@ interface ProductVerticalCardProps {
 
 const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image, slug }) => {
   const formatPrice = (p: number) => p.toLocaleString('sr-RS');
+  const userId = useSelector((state: RootState) => state.auth.userId);
+
+  const handleAddToWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+    wishlistService.add({ userId, productId: slug }).catch(console.error);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // na osnovu toga dal je user ulogovan skontamo dal treba u bazu il LS
+    if (userId) {
+      cartService.create({ userId, productId: slug, quantity: 1 }).catch(console.error);
+    } else {
+      cartServiceLS.add({ productId: slug, productName: name, price, image });
+    }
+  };
 
   return (
     <Link to={`/proizvodi/${slug}`} className="relative bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
       <button
-        onClick={(e) => e.preventDefault()}
+        onClick={handleAddToWishlist}
         className="absolute top-3 right-3 z-10 w-9 h-9 bg-yellow-400 border-neutral-200 rounded-full flex items-center cursor-pointer justify-center text-white hover:bg-yellow-600 transition-all shadow-sm"
       >
         <FiHeart size={16} />
@@ -40,7 +62,7 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
           {name}
         </h3>
         
-        <div className="mt-2 flex items-baseline gap-2">
+        <div className="mt-2 flex flex-col items-baseline gap-2">
           <span className="text-lg font-bold text-black">{formatPrice(price)} RSD</span>
           {oldPrice && (
             <span className="text-xs text-neutral-400 line-through">{formatPrice(oldPrice)} RSD</span>
@@ -48,8 +70,9 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
         </div>
       </div>
       
-      <button className="mt-auto w-full py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold opacity-0 translate-y-2 transition-all group-hover:opacity-100 group-hover:translate-y-0 active:bg-black">
-        Dodaj u korpu
+      <button onClick={handleAddToCart} className="mt-auto flex items-center gap-2 justify-center w-full py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold opacity-0 translate-y-2 transition-all group-hover:opacity-100 group-hover:translate-y-0 hover:bg-gray-600 active:bg-black cursor-pointer">
+        <LuShoppingCart />
+        <span>Dodaj u korpu</span>
       </button>
     </Link>
   )
