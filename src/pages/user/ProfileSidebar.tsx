@@ -1,8 +1,18 @@
 import { NavLink } from 'react-router-dom'
+import { useDispatch } from 'react-redux'
 import { FiLogOut } from "react-icons/fi";
 import { SIDEBAR_ITEMS } from '../../constants/profileSidebarItems';
+import { authService } from '../../services/authService';
+import { logoutSuccess } from '../../store/slices/authSlice';
 
 const ProfileSidebar = () => {
+  const dispatch = useDispatch()
+
+  const handleLogout = () => {
+    authService.logout().catch(console.error)
+    dispatch(logoutSuccess())
+  }
+
   return (
     <div className="w-80 border-r border-neutral-100 bg-white flex flex-col min-h-[calc(100vh-80px)] justify-between">
       
@@ -32,7 +42,7 @@ const ProfileSidebar = () => {
       </div>
 
       <div className="p-6 mt-auto">
-        <button className="flex items-center gap-4 px-4 py-3.5 w-full rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-all cursor-pointer">
+        <button onClick={handleLogout} className="flex items-center gap-4 px-4 py-3.5 w-full rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-all cursor-pointer">
           <FiLogOut className="text-xl" />
           Odjavi se
         </button>

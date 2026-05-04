@@ -4,7 +4,9 @@ import { FaAngleDown } from 'react-icons/fa6'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store/store'
 import { orderService } from '../../services/orderService'
+import { reviewService } from '../../services/reviewService'
 import type { OrderDTO, OrderSort, OrderItemWithProductDTO } from '../../types/order'
+import ReviewDialog from '../../dialogs/ReviewDialog'
 
 const PAGE_SIZE = 12
 
@@ -27,6 +29,8 @@ const OrdersPage = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [itemsMap, setItemsMap] = useState<Record<string, OrderItemWithProductDTO[]>>({})
   const [itemsLoading, setItemsLoading] = useState<string | null>(null)
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set())
+  const [reviewProduct, setReviewProduct] = useState<{ productId: string; productName: string } | null>(null)
 
   useEffect(() => {
     if (!userId) { setLoading(false); return }
@@ -34,6 +38,13 @@ const OrdersPage = () => {
       .then(setOrders)
       .catch(console.error)
       .finally(() => setLoading(false))
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+    reviewService.getByUserId(userId, { pageSize: 1000 })
+      .then(result => setReviewedProductIds(new Set(result.items.map(r => r.productId))))
+      .catch(console.error)
   }, [userId])
 
   const sorted = useMemo(() => {
@@ -63,6 +74,10 @@ const OrdersPage = () => {
       .then(items => setItemsMap(prev => ({ ...prev, [orderId]: items })))
       .catch(console.error)
       .finally(() => setItemsLoading(null))
+  }
+
+  const handleReviewed = (productId: string) => {
+    setReviewedProductIds(prev => new Set(prev).add(productId))
   }
 
   return (
@@ -145,39 +160,51 @@ const OrdersPage = () => {
                         ) : (itemsMap[order.orderId] ?? []).length === 0 ? (
                           <p className="text-xs text-gray-400">Nema stavki u ovoj porudžbini.</p>
                         ) : (
-                          // naruceni proizvodi za order
                           <div className="flex flex-col gap-3">
                             <div className='flex items-center justify-between'>
                               <span className='font-semibold text-md'>Ukupno placeno</span>
                               <span className='bg-yellow-300 px-3 rounded-md'>{fmtPrice(itemsMap[order.orderId].reduce((sum, item) => sum + item.product.price * (1 - item.product.discount / 100) * item.quantity, 0))} RSD</span>
                             </div>
                             <hr />
-                            {itemsMap[order.orderId].map(item => (
-                              <div key={item.product.productId} className="flex items-center gap-4 bg-white rounded-lg border border-neutral-100 px-4 py-3">
-                                <div className="w-12 h-12 shrink-0 rounded-lg bg-neutral-50 border border-neutral-100 overflow-hidden flex items-center justify-center p-1">
-                                  <img
-                                    src={item.product.images[0]?.imageLink ?? ''}
-                                    alt={item.product.productName}
-                                    className="w-full h-full object-contain"
-                                  />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-neutral-800 text-sm truncate">{item.product.productName}</p>
-                                  <p className="text-xs text-gray-400 mt-0.5">Količina: {item.quantity}</p>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <p className="font-semibold text-sm text-neutral-800">
-                                    {fmtPrice(item.product.price * (1 - item.product.discount / 100) * item.quantity)} RSD
-                                  </p>
-                                  {item.product.discount > 0 && (
-                                    <p className="text-xs text-gray-400 line-through">
-                                      {fmtPrice(item.product.price * item.quantity)} RSD
+                            {itemsMap[order.orderId].map(item => {
+                              const alreadyReviewed = reviewedProductIds.has(item.product.productId)
+                              return (
+                                <div key={item.product.productId} className="flex items-center gap-4 bg-white rounded-lg border border-neutral-100 px-4 py-3">
+                                  <div className="w-12 h-12 shrink-0 rounded-lg bg-neutral-50 border border-neutral-100 overflow-hidden flex items-center justify-center p-1">
+                                    <img
+                                      src={item.product.images[0]?.imageLink ?? ''}
+                                      alt={item.product.productName}
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-neutral-800 text-sm truncate">{item.product.productName}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Količina: {item.quantity}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="font-semibold text-sm text-neutral-800">
+                                      {fmtPrice(item.product.price * (1 - item.product.discount / 100) * item.quantity)} RSD
                                     </p>
-                                  )}
+                                    {item.product.discount > 0 && (
+                                      <p className="text-xs text-gray-400 line-through">
+                                        {fmtPrice(item.product.price * item.quantity)} RSD
+                                      </p>
+                                    )}
+                                  </div>
+                                  <button
+                                    disabled={alreadyReviewed}
+                                    onClick={() => !alreadyReviewed && setReviewProduct({ productId: item.product.productId, productName: item.product.productName })}
+                                    className={`shrink-0 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors
+                                      ${alreadyReviewed
+                                        ? 'border-none bg-yellow-50 text-black cursor-not-allowed'
+                                        : 'border-neutral-200 hover:bg-neutral-50 cursor-pointer'}`}
+                                  >
+                                    {alreadyReviewed ? 'Ocenjeno' : 'Oceni'}
+                                  </button>
                                 </div>
-                              </div>
-                            ))}
-                          </div>  
+                              )
+                            })}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -218,6 +245,16 @@ const OrdersPage = () => {
             <FiChevronRight size={16} />
           </button>
         </div>
+      )}
+
+      {reviewProduct && userId && (
+        <ReviewDialog
+          productName={reviewProduct.productName}
+          productId={reviewProduct.productId}
+          userId={userId}
+          onClose={() => setReviewProduct(null)}
+          onReviewed={handleReviewed}
+        />
       )}
     </div>
   )

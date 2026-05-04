@@ -5,6 +5,8 @@ import type {
   ProductReviewAveragesDTO,
   CreateReviewDTO,
   UpdateReviewDTO,
+  ReviewUserFilterParams,
+  ReviewUserFilterResult,
   ReviewError,
 } from '../types/review';
 
@@ -20,9 +22,10 @@ class ReviewService {
     }
   }
 
-  async getByUserId(userId: string): Promise<ReviewDTO[]> {
+  async getByUserId(userId: string, params?: ReviewUserFilterParams): Promise<ReviewUserFilterResult> {
     try {
-      const { data } = await axiosInstance.get<ReviewDTO[]>(`${this.ENDPOINT}/user/${userId}`);
+      const { data } = await axiosInstance.get<ReviewUserFilterResult>(`${this.ENDPOINT}/user/${userId}`, { params });
+      console.log("return data: ", data)
       return data;
     } catch (error) {
       throw this.handleError(error);

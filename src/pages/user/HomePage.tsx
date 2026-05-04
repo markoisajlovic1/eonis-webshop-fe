@@ -8,6 +8,8 @@ import { useCategories } from '../../hooks/useCategories';
 import { brands } from '../../mockData/brands';
 import { productService } from '../../services/productService';
 import type { ProductDTO } from '../../types/product';
+import { FaBoxes } from "react-icons/fa";
+
 
 const HomePage = () => {
   const { data: categories = [] } = useCategories()
@@ -20,8 +22,17 @@ const HomePage = () => {
   return (
     <div className="bg-neutral-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
+            {/**check order */}
+            <div className='bg-yellow-100 py-4 px-8 shadow-sm mt-6 rounded-md flex items-center justify-between'>
+                <div className='flex items-center gap-4'>
+                    <FaBoxes />
+                    <span className='font-semibold'>Proverite status porudzbine</span>
+                </div>
+
+                <button className='bg-white px-4 py-1 shadow-sm rounded-md'>Proveri status</button>
+            </div>
             {/* Hero Section */}
-            <div className='flex flex-col md:flex-row gap-4 px-4 pt-6'>
+            <div className='flex flex-col md:flex-row gap-4 pt-10'>
                 <div className="flex-1 min-w-0">
                     <BannerSlider />
                 </div>
@@ -40,7 +51,7 @@ const HomePage = () => {
                     <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">Kategorije</h2>
                     <button className="text-sm font-semibold text-neutral-500 hover:text-black transition-colors">Vidi sve</button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {categories.map(cat => (
                         <CategoryCard key={cat.categoryId} id={cat.categoryId} name={cat.name} />
                     ))}

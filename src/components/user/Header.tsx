@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import SearchBar from './SearchBar';
 import { CgProfile } from "react-icons/cg";
 import { LuShoppingCart } from "react-icons/lu";
@@ -10,14 +10,24 @@ import { useCategories } from '../../hooks/useCategories';
 import { useSubcategories } from '../../hooks/useSubcategories';
 import { toSlug } from '../../utils/slug';
 import { productService } from '../../services/productService';
+import { authService } from '../../services/authService';
 import type { ProductDTO } from '../../types/product';
 import type { RootState } from '../../store/store';
+import { logoutSuccess } from '../../store/slices/authSlice';
 import { MdLogout } from "react-icons/md";
 
 
 const Header: React.FC = () => {
   const { username } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
   const { data: categories = [] } = useCategories();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    authService.logout().catch(console.error)
+    dispatch(logoutSuccess())
+    navigate('/');
+  }
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const { data: subcategories = [] } = useSubcategories(hoveredCategoryId);
@@ -146,9 +156,13 @@ const Header: React.FC = () => {
           <span className='text-white font-light'>Korpa</span>
           <div className='bg-yellow-400 w-4 h-4 text-center top-0 left-8 rounded-full absolute text-xs text-black'>10</div>
         </Link>
-        <button className='text-white hover:bg-gray-700 transition-all p-2 rounded-full cursor-pointer'>
-          <MdLogout />
-        </button>
+        {
+          username && (
+            <button onClick={handleLogout} className='text-white hover:bg-gray-700 transition-all p-2 rounded-full cursor-pointer'>
+                <MdLogout />
+            </button>
+          )
+        }
       </div>
     </header>
   );

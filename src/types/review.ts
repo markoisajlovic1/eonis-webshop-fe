@@ -9,6 +9,7 @@ export interface ReviewDTO {
   totalGrade: number
   userId: string
   productId: string
+  productName: string
   comment: CommentDTO | null
 }
 
@@ -34,6 +35,19 @@ export interface UpdateReviewDTO {
   qualityGrade: number
   designGrade: number
   performanceGrade: number
+}
+
+export interface ReviewUserFilterParams {
+  pageNumber?: number
+  pageSize?: number
+}
+
+export interface ReviewUserFilterResult {
+  items: ReviewDTO[]
+  totalCount: number
+  pageNumber: number
+  pageSize: number
+  totalPages: number
 }
 
 export interface ReviewError {
