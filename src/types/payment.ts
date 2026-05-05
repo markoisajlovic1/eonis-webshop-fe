@@ -3,9 +3,26 @@ export interface CheckoutItemDTO {
   quantity: number
 }
 
+export interface CreateAddressDTO {
+  postalCode: string
+  streetName: string
+  streetNumber: string
+  city: string
+  country: string
+  floor: number
+  doorNumber: string
+}
+
 export interface CreateCheckoutSessionDTO {
-  userId: string
+  userId?: string | null
   items: CheckoutItemDTO[]
+  address?: CreateAddressDTO
+}
+
+export interface CashPaymentDTO {
+  userId?: string | null
+  items: CheckoutItemDTO[]
+  address?: CreateAddressDTO
 }
 
 export interface CheckoutSessionResult {

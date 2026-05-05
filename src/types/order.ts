@@ -1,10 +1,13 @@
 export type OrderSort = 'DateAsc' | 'DateDesc'
 
+export type OrderStatus = 0 | 1 | 2
+
 export interface OrderDTO {
   orderId: string
   userId: string
   date: string
   codeId: string | null
+  status: OrderStatus
 }
 
 export interface CreateOrderDTO {

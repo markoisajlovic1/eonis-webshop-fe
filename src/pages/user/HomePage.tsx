@@ -9,21 +9,22 @@ import { brands } from '../../mockData/brands';
 import { productService } from '../../services/productService';
 import type { ProductDTO } from '../../types/product';
 import { FaBoxes } from "react-icons/fa";
+import CheckOrderStatusDialog from '../../dialogs/CheckOrderStatusDialog';
 
 
 const HomePage = () => {
   const { data: categories = [] } = useCategories()
   const [recommended, setRecommended] = useState<ProductDTO[]>([])
+  const [checkOrderOpen, setCheckOrderOpen] = useState(false)
 
   useEffect(() => {
     productService.getRecommended().then(setRecommended).catch(console.error)
   }, [])
 
-//   const openCheckOrderStatusDialog(() => {
-
-//   })
+  const openCheckOrderStatusDialog = () => setCheckOrderOpen(true)
 
   return (
+    <>
     <div className="bg-neutral-50 min-h-screen">
         <div className="max-w-7xl mx-auto">
             {/**check order */}
@@ -33,7 +34,7 @@ const HomePage = () => {
                     <span className='font-semibold'>Proverite status porudzbine</span>
                 </div>
 
-                <button className='bg-white px-4 py-1 shadow-sm rounded-md'>Proveri status</button>
+                <button onClick={openCheckOrderStatusDialog} className='bg-white px-4 py-1 shadow-sm rounded-md'>Proveri status</button>
             </div>
             {/* Hero Section */}
             <div className='flex flex-col md:flex-row gap-4 pt-10'>
@@ -100,6 +101,10 @@ const HomePage = () => {
             </section>
         </div>
     </div>
+    {checkOrderOpen && (
+      <CheckOrderStatusDialog onClose={() => setCheckOrderOpen(false)} />
+    )}
+    </>
   )
 }
 

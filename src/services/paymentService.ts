@@ -1,6 +1,6 @@
 import axiosInstance from './api/axiosInstance';
 import { AxiosError } from 'axios';
-import type { CreateCheckoutSessionDTO, CheckoutSessionResult, PaymentError } from '../types/payment';
+import type { CreateCheckoutSessionDTO, CashPaymentDTO, CheckoutSessionResult, PaymentError } from '../types/payment';
 
 class PaymentService {
   private readonly ENDPOINT = '/api/payments';
@@ -12,6 +12,14 @@ class PaymentService {
         dto
       );
       return data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async cashPayment(dto: CashPaymentDTO): Promise<void> {
+    try {
+      await axiosInstance.post(`${this.ENDPOINT}/cash-payment`, dto);
     } catch (error) {
       throw this.handleError(error);
     }

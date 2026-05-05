@@ -1,5 +1,4 @@
 export interface CouponDTO {
-  codeId: string
   code: string
   value: number
   userId: string
@@ -14,7 +13,12 @@ export interface CreateCouponDTO {
 export interface UpdateCouponDTO {
   code: string
   value: number
-  userId: string
+}
+
+export interface CouponCheckResult {
+  isUsed: boolean
+  value: number
+  message: string
 }
 
 export interface CouponError {

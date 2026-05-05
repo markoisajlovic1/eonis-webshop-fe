@@ -70,6 +70,7 @@ const OrdersPage = () => {
     setExpandedId(orderId)
     if (itemsMap[orderId]) return
     setItemsLoading(orderId)
+    //
     orderService.getItemsByOrderId(orderId)
       .then(items => setItemsMap(prev => ({ ...prev, [orderId]: items })))
       .catch(console.error)

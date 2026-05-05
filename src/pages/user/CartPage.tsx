@@ -6,7 +6,9 @@ import { cartService } from '../../services/cartService/cartService'
 import { cartServiceLS } from '../../services/cartService/cartServiceLS'
 import { productService } from '../../services/productService'
 import { paymentService } from '../../services/paymentService'
+import { couponService } from '../../services/couponService'
 import { Link } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import AddressDialog from '../../dialogs/AddressDialog'
 import type { AddressFormData } from '../../dialogs/AddressDialog'
 
@@ -103,14 +105,20 @@ const CartPage = () => {
 
   const handleAddressConfirm = (address: AddressFormData) => {
     setAddressDialogOpen(false)
+    const cartItems = items.map(i => ({ productId: i.productId, quantity: i.quantity }))
     if (paymentMethod === 'cash') {
-      console.log('Poručivanje pouzećem:', { address, items })
-      
+      paymentService.cashPayment({
+        userId: userId ?? null,
+        items: cartItems,
+        address,
+      })
+        .then(() => toast.success('Porudžbina uspešno poslata!'))
+        .catch(console.error)
     } else {
-      if (!userId) return
       paymentService.createCheckoutSession({
-        userId,
-        items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        userId: userId ?? null,
+        items: cartItems,
+        address,
       })
         .then(result => { window.location.href = result.url })
         .catch(console.error)
@@ -118,10 +126,21 @@ const CartPage = () => {
   }
 
   const [couponCode, setCouponCode] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<number>(0)
 
   const handleApplyCoupon = () => {
-    if (!couponCode.trim()) return
-    console.log('Primenjen kod:', couponCode.trim())
+    const code = couponCode.trim()
+    if (!code || !userId) return
+    couponService.checkUsedByUser(code, userId)
+      .then(result => {
+        if (result.isUsed) {
+          toast.error('Kod je već iskorišćen.')
+        } else {
+          setAppliedDiscount(result.value)
+          toast.success('Popust primenjen.')
+        }
+      })
+      .catch(() => toast.error('Kupon kod nije pronađen.'))
   }
 
   const isCash = paymentMethod === 'cash'
@@ -214,24 +233,28 @@ const CartPage = () => {
         {/* Summary */}
         <div className='flex flex-col gap-4'>
         {/* Kupon */}
-          <div className='bg-white p-4 flex flex-col gap-4 rounded-md'>
-            <h3 className='font-semibold'>Iskoristi kod</h3>
-            <div className='flex gap-2'>
-              <input
-                type='text'
-                value={couponCode}
-                onChange={e => setCouponCode(e.target.value)}
-                placeholder='Unesite kod...'
-                className='flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition-colors'
-              />
-              <button
-                onClick={handleApplyCoupon}
-                className='px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap'
-              >
-                Primeni
-              </button>
-            </div>
-          </div>
+          {
+            userId && (
+              <div className='bg-white p-4 flex flex-col gap-4 rounded-md'>
+                <h3 className='font-semibold'>Iskoristi kod</h3>
+                <div className='flex gap-2'>
+                  <input
+                    type='text'
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)}
+                    placeholder='Unesite kod...'
+                    className='flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition-colors'
+                  />
+                  <button
+                    onClick={handleApplyCoupon}
+                    className='px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap'
+                  >
+                    Primeni
+                  </button>
+                </div>
+              </div>
+            )
+          }
           
           <div className='bg-white border border-gray-100 w-80 shrink-0 rounded-xl p-6 flex flex-col gap-4'>
             <h2 className='text-lg font-semibold text-neutral-800'>Za plaćanje</h2>
@@ -244,9 +267,15 @@ const CartPage = () => {
               ))}
             </div>
 
+            {appliedDiscount > 0 && (
+              <div className='flex justify-between text-sm text-green-600'>
+                <span>Popust ({appliedDiscount}%)</span>
+                <span>- {fmt(total * appliedDiscount / 100)} RSD</span>
+              </div>
+            )}
             <div className='border-t border-neutral-100 pt-4 flex justify-between font-semibold text-neutral-800'>
               <span>Ukupno</span>
-              <span>{fmt(total)} RSD</span>
+              <span>{fmt(total * (1 - appliedDiscount / 100))} RSD</span>
             </div>
 
             {/* Način plaćanja */}

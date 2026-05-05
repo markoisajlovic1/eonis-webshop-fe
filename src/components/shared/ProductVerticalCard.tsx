@@ -7,7 +7,7 @@ import type { RootState } from '../../store/store';
 import { wishlistService } from '../../services/wishlistService';
 import { cartService } from '../../services/cartService/cartService';
 import { cartServiceLS } from '../../services/cartService/cartServiceLS';
-
+// izmeniti da ako user nije ulogovan da ne izlazi srce za wishlist
 interface ProductVerticalCardProps {
   name: string;
   price: number;
