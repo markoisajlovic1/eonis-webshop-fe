@@ -19,6 +19,10 @@ const HomePage = () => {
     productService.getRecommended().then(setRecommended).catch(console.error)
   }, [])
 
+//   const openCheckOrderStatusDialog(() => {
+
+//   })
+
   return (
     <div className="bg-neutral-50 min-h-screen">
         <div className="max-w-7xl mx-auto">

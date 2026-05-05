@@ -6,6 +6,11 @@ import { cartService } from '../../services/cartService/cartService'
 import { cartServiceLS } from '../../services/cartService/cartServiceLS'
 import { productService } from '../../services/productService'
 import { paymentService } from '../../services/paymentService'
+import { Link } from 'react-router-dom'
+import AddressDialog from '../../dialogs/AddressDialog'
+import type { AddressFormData } from '../../dialogs/AddressDialog'
+
+type PaymentMethod = 'card' | 'cash'
 
 interface CartRow {
   productId: string
@@ -22,6 +27,8 @@ const CartPage = () => {
   const userId = useSelector((state: RootState) => state.auth.userId)
   const [items, setItems] = useState<CartRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card')
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false)
 
   useEffect(() => {
     if (userId) {
@@ -79,7 +86,13 @@ const CartPage = () => {
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   const handlePay = () => {
-    if (!userId || items.length === 0) return
+    if (items.length === 0) return
+    // za neulogovanog ---
+    if (!userId || paymentMethod === 'cash') {
+      setAddressDialogOpen(true)
+      return
+    }
+    // za ulogovanog ---
     paymentService.createCheckoutSession({
       userId,
       items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
@@ -87,6 +100,32 @@ const CartPage = () => {
       .then(result => { window.location.href = result.url })
       .catch(console.error)
   }
+
+  const handleAddressConfirm = (address: AddressFormData) => {
+    setAddressDialogOpen(false)
+    if (paymentMethod === 'cash') {
+      console.log('Poručivanje pouzećem:', { address, items })
+      
+    } else {
+      if (!userId) return
+      paymentService.createCheckoutSession({
+        userId,
+        items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+      })
+        .then(result => { window.location.href = result.url })
+        .catch(console.error)
+    }
+  }
+
+  const [couponCode, setCouponCode] = useState('')
+
+  const handleApplyCoupon = () => {
+    if (!couponCode.trim()) return
+    console.log('Primenjen kod:', couponCode.trim())
+  }
+
+  const isCash = paymentMethod === 'cash'
+  const actionLabel = isCash ? 'Poruči' : 'Nastavi na plaćanje'
 
   return (
     <div className='bg-neutral-100 min-h-screen py-10'>
@@ -157,7 +196,7 @@ const CartPage = () => {
           )}
 
           <div className='flex items-center gap-4 p-6'>
-            <button className='py-1 px-3 rounded-md border border-gray-300 cursor-pointer'>Vrati se na katalog</button>
+            <Link to={'/'} className='py-1 px-3 rounded-md border border-gray-300 cursor-pointer'>Vrati se na pocetnu</Link>
             <button
               onClick={clearCart}
               disabled={items.length === 0}
@@ -173,30 +212,89 @@ const CartPage = () => {
         </div>
 
         {/* Summary */}
-        <div className='bg-white border border-gray-100 w-80 shrink-0 rounded-xl p-6 flex flex-col gap-4'>
-          <h2 className='text-lg font-semibold text-neutral-800'>Za plaćanje</h2>
-          <div className='flex flex-col gap-2 text-sm text-neutral-600'>
-            {items.map((item) => (
-              <div key={item.productId} className='flex justify-between'>
-                <span className='truncate max-w-[160px] text-gray-400'>{item.name}</span>
-                <span>{fmt(item.price * item.quantity)} RSD</span>
+        <div className='flex flex-col gap-4'>
+        {/* Kupon */}
+          <div className='bg-white p-4 flex flex-col gap-4 rounded-md'>
+            <h3 className='font-semibold'>Iskoristi kod</h3>
+            <div className='flex gap-2'>
+              <input
+                type='text'
+                value={couponCode}
+                onChange={e => setCouponCode(e.target.value)}
+                placeholder='Unesite kod...'
+                className='flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition-colors'
+              />
+              <button
+                onClick={handleApplyCoupon}
+                className='px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap'
+              >
+                Primeni
+              </button>
+            </div>
+          </div>
+          
+          <div className='bg-white border border-gray-100 w-80 shrink-0 rounded-xl p-6 flex flex-col gap-4'>
+            <h2 className='text-lg font-semibold text-neutral-800'>Za plaćanje</h2>
+            <div className='flex flex-col gap-2 text-sm text-neutral-600'>
+              {items.map((item) => (
+                <div key={item.productId} className='flex justify-between'>
+                  <span className='truncate max-w-[160px] text-gray-400'>{item.name}</span>
+                  <span>{fmt(item.price * item.quantity)} RSD</span>
+                </div>
+              ))}
+            </div>
+
+            <div className='border-t border-neutral-100 pt-4 flex justify-between font-semibold text-neutral-800'>
+              <span>Ukupno</span>
+              <span>{fmt(total)} RSD</span>
+            </div>
+
+            {/* Način plaćanja */}
+            <div className='flex flex-col gap-2'>
+              <span className='text-xs font-medium text-neutral-500 uppercase tracking-wide'>Način plaćanja</span>
+              <div className='flex flex-col gap-2'>
+                {([
+                  { value: 'card', label: 'Kartica (online)' },
+                  { value: 'cash', label: 'Pouzećem' },
+                ] as { value: PaymentMethod; label: string }[]).map(opt => (
+                  <label
+                    key={opt.value}
+                    className='flex items-center gap-2.5 cursor-pointer group'
+                  >
+                    <input
+                      type='radio'
+                      name='paymentMethod'
+                      value={opt.value}
+                      checked={paymentMethod === opt.value}
+                      onChange={() => setPaymentMethod(opt.value)}
+                      className='accent-yellow-400 w-4 h-4 cursor-pointer'
+                    />
+                    <span className='text-sm text-neutral-700'>{opt.label}</span>
+                  </label>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <button
+              onClick={handlePay}
+              disabled={items.length === 0}
+              className='w-full bg-yellow-400 hover:bg-yellow-500 transition-colors text-black font-semibold py-3 rounded-xl text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              {actionLabel}
+            </button>
           </div>
-          <div className='border-t border-neutral-100 pt-4 flex justify-between font-semibold text-neutral-800'>
-            <span>Ukupno</span>
-            <span>{fmt(total)} RSD</span>
-          </div>
-          <button
-            onClick={handlePay}
-            disabled={items.length === 0}
-            className='w-full bg-yellow-400 hover:bg-yellow-500 transition-colors text-black font-semibold py-3 rounded-xl text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-          >
-            Nastavi na plaćanje
-          </button>
+
         </div>
 
       </div>
+
+      {addressDialogOpen && (
+        <AddressDialog
+          isCashOnDelivery={isCash}
+          onConfirm={handleAddressConfirm}
+          onClose={() => setAddressDialogOpen(false)}
+        />
+      )}
     </div>
   )
 }
