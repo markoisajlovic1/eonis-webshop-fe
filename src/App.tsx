@@ -7,8 +7,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import { useDispatch, useSelector } from 'react-redux'
 import type { RootState } from './store/store'
 import { setCount } from './store/slices/cartSlice'
+import { setWishlist, clearWishlist } from './store/slices/wishlistSlice'
 import { cartService } from './services/cartService/cartService'
 import { cartServiceLS } from './services/cartService/cartServiceLS'
+import { wishlistService } from './services/wishlistService'
 
 function App() {
   const dispatch = useDispatch()
@@ -19,8 +21,13 @@ function App() {
       cartService.getByUserId(userId)
         .then(items => dispatch(setCount(items.length)))
         .catch(console.error)
+
+      wishlistService.getByUserId(userId, { pageSize: 1000 })
+        .then(result => dispatch(setWishlist(result.items.map(p => p.productId))))
+        .catch(console.error)
     } else {
       dispatch(setCount(cartServiceLS.getAll().length))
+      dispatch(clearWishlist())
     }
   }, [userId])
 

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom';
 import { FiHeart } from 'react-icons/fi';
+import { FaHeart } from 'react-icons/fa';
 import { LuShoppingCart } from "react-icons/lu";
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store/store';
@@ -8,7 +9,7 @@ import { wishlistService } from '../../services/wishlistService';
 import { cartService } from '../../services/cartService/cartService';
 import { cartServiceLS } from '../../services/cartService/cartServiceLS';
 import { increment } from '../../store/slices/cartSlice'
-// izmeniti da ako user nije ulogovan da ne izlazi srce za wishlist
+import { addToWishlist, removeFromWishlist } from '../../store/slices/wishlistSlice'
 interface ProductVerticalCardProps {
   name: string;
   price: number;
@@ -20,12 +21,20 @@ interface ProductVerticalCardProps {
 const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image, slug }) => {
   const formatPrice = (p: number) => p.toLocaleString('sr-RS');
   const userId = useSelector((state: RootState) => state.auth.userId);
+  const wishlistIds = useSelector((state: RootState) => state.wishlist.productIds);
+  const isWishlisted = wishlistIds.includes(slug);
   const dispatch = useDispatch<AppDispatch>();
 
   const handleAddToWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!userId) return;
-    wishlistService.add({ userId, productId: slug }).catch(console.error);
+    if (isWishlisted) {
+      wishlistService.remove(userId, slug).catch(console.error);
+      dispatch(removeFromWishlist(slug));
+    } else {
+      wishlistService.add({ userId, productId: slug }).catch(console.error);
+      dispatch(addToWishlist(slug));
+    }
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -48,7 +57,7 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
             onClick={handleAddToWishlist}
             className="absolute top-3 right-3 z-10 w-9 h-9 bg-yellow-400 border-neutral-200 rounded-full flex items-center cursor-pointer justify-center text-white hover:bg-yellow-600 transition-all shadow-sm"
           >
-            <FiHeart size={16} />
+            {isWishlisted ? <FaHeart size={16} /> : <FiHeart size={16} />}
           </button>
         )
       }

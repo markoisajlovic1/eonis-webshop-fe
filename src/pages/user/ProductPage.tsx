@@ -58,10 +58,12 @@ const ProductPage = () => {
 
         <div className="w-100 h-full flex items-center relative shrink-0">
           <ProductActions
+            productId={product.productId}
             name={product.productName}
             price={product.price}
             discount={product.discount}
             quantity={product.quantity}
+            image={product.images[0]?.imageLink ?? ''}
           />
         </div>
       </div>

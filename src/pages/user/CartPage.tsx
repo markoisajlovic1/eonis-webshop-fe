@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FiMapPin, FiTrash2 } from 'react-icons/fi'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '../../store/store'
@@ -150,6 +150,29 @@ const CartPage = () => {
     }
   }
 
+  const quantityDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  const updateQuantity = (productId: string, newQty: number) => {
+    // ne moze da se setuje na manje od 1
+    if (newQty < 1) return
+    setItems(prev => prev.map(i => i.productId === productId ? { ...i, quantity: newQty } : i))
+
+    if (quantityDebounceRef.current[productId]) {
+      clearTimeout(quantityDebounceRef.current[productId])
+    }
+
+    // debounce da ne moze da se spamuje 
+    quantityDebounceRef.current[productId] = setTimeout(() => {
+      // ulogovani opet updateuje cart u db
+      // neulogovani update u LS
+      if (userId) {
+        cartService.update(userId, productId, { quantity: newQty }).catch(console.error)
+      } else {
+        cartServiceLS.update(productId, newQty)
+      }
+    }, 500)
+  }
+
   const [couponCode, setCouponCode] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0)
 
@@ -219,9 +242,24 @@ const CartPage = () => {
                         </div>
                       </td>
                       <td className='px-6 py-4 text-center'>
-                        <span className='inline-block px-3 py-1 bg-neutral-100 rounded-md text-neutral-700 font-medium'>
-                          {item.quantity}
-                        </span>
+                        <div className='inline-flex items-center gap-1'>
+                          <button
+                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className='w-7 h-7 rounded-md bg-neutral-100 hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-700 font-bold text-base flex items-center justify-center cursor-pointer transition-colors'
+                          >−</button>
+                          <input
+                            type='number'
+                            min={1}
+                            value={item.quantity}
+                            onChange={e => updateQuantity(item.productId, Math.max(1, parseInt(e.target.value) || 1))}
+                            className='w-10 text-center text-sm font-medium text-neutral-800 bg-neutral-100 rounded-md py-1 outline-none focus:ring-1 focus:ring-yellow-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                          />
+                          <button
+                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                            className='w-7 h-7 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-base flex items-center justify-center cursor-pointer transition-colors'
+                          >+</button>
+                        </div>
                       </td>
                       <td className='px-6 py-4'>
                         <div className='flex items-center justify-end gap-4'>
