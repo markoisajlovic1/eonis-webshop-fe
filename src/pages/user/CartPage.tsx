@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react'
-import { FiTrash2 } from 'react-icons/fi'
-import { useSelector } from 'react-redux'
-import type { RootState } from '../../store/store'
+import { FiMapPin, FiTrash2 } from 'react-icons/fi'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store/store'
 import { cartService } from '../../services/cartService/cartService'
 import { cartServiceLS } from '../../services/cartService/cartServiceLS'
 import { productService } from '../../services/productService'
 import { paymentService } from '../../services/paymentService'
 import { couponService } from '../../services/couponService'
+import { usersService } from '../../services/usersService'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { decrement, clearCart as clearCartCount } from '../../store/slices/cartSlice'
 import AddressDialog from '../../dialogs/AddressDialog'
 import type { AddressFormData } from '../../dialogs/AddressDialog'
+import type { AddressDTO } from '../../types/address'
 
 type PaymentMethod = 'card' | 'cash'
 
@@ -27,10 +30,13 @@ const fmt = (n: number) => n.toLocaleString('sr-RS')
 
 const CartPage = () => {
   const userId = useSelector((state: RootState) => state.auth.userId)
+  const dispatch = useDispatch<AppDispatch>();
   const [items, setItems] = useState<CartRow[]>([])
   const [loading, setLoading] = useState(true)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card')
   const [addressDialogOpen, setAddressDialogOpen] = useState(false)
+  const [userAddresses, setUserAddresses] = useState<AddressDTO[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
 
   useEffect(() => {
     if (userId) {
@@ -52,6 +58,16 @@ const CartPage = () => {
         .then(setItems)
         .catch(console.error)
         .finally(() => setLoading(false))
+
+      // da bi dobio info o userovim adresama
+      usersService.getUserDetails(userId)
+        .then(details => {
+          setUserAddresses(details.addresses)
+          if (details.addresses.length > 0) {
+            setSelectedAddressId(details.addresses[0].addressId)
+          }
+        })
+        .catch(console.error)
     } else {
       Promise.resolve(cartServiceLS.getAll()).then(lsItems => {
         setItems(lsItems.map(i => ({
@@ -74,6 +90,8 @@ const CartPage = () => {
       cartServiceLS.remove(productId)
     }
     setItems(prev => prev.filter(i => i.productId !== productId))
+    // brisanje iz reduxa
+    dispatch(decrement())
   }
 
   const clearCart = () => {
@@ -83,21 +101,26 @@ const CartPage = () => {
       cartServiceLS.clear()
     }
     setItems([])
+    // brisanje iz reduxa
+    dispatch(clearCartCount())
   }
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   const handlePay = () => {
     if (items.length === 0) return
-    // za neulogovanog ---
+    const cartItems = items.map(i => ({ productId: i.productId, quantity: i.quantity }))
+
     if (!userId || paymentMethod === 'cash') {
       setAddressDialogOpen(true)
       return
     }
-    // za ulogovanog ---
+
+    // logged in, card payment — send selected addressId
     paymentService.createCheckoutSession({
       userId,
-      items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+      addressId: selectedAddressId,
+      items: cartItems,
     })
       .then(result => { window.location.href = result.url })
       .catch(console.error)
@@ -109,6 +132,7 @@ const CartPage = () => {
     if (paymentMethod === 'cash') {
       paymentService.cashPayment({
         userId: userId ?? null,
+        addressId: null,
         items: cartItems,
         address,
       })
@@ -117,6 +141,7 @@ const CartPage = () => {
     } else {
       paymentService.createCheckoutSession({
         userId: userId ?? null,
+        addressId: null,
         items: cartItems,
         address,
       })
@@ -149,113 +174,158 @@ const CartPage = () => {
   return (
     <div className='bg-neutral-100 min-h-screen py-10'>
       <div className='flex mx-auto max-w-[1200px] px-4 gap-6 items-start'>
+        
+        <div className='w-[1200px] flex flex-col gap-4'>
+          
 
-        {/* Proizvodi */}
-        <div className='bg-white border border-gray-100 flex-1 rounded-xl overflow-hidden'>
-          <div className='px-6 py-4 border-b border-neutral-100'>
-            <h2 className='text-lg font-semibold text-neutral-800'>Proizvodi u korpi</h2>
-            <span className='text-sm text-gray-400'>{items.length} stavki</span>
-          </div>
+          {/* Proizvodi */}
+          <div className='bg-white border border-gray-100 flex-1 rounded-xl overflow-hidden'>
+            <div className='px-6 py-4 border-b border-neutral-100'>
+              <h2 className='text-lg font-semibold text-neutral-800'>Proizvodi u korpi</h2>
+              <span className='text-sm text-gray-400'>{items.length} stavki</span>
+            </div>
 
-          {loading ? (
-            <div className='flex items-center justify-center py-20 text-sm text-gray-400'>
-              Učitavanje...
-            </div>
-          ) : items.length === 0 ? (
-            <div className='flex items-center justify-center py-20 text-sm text-gray-400'>
-              Korpa je prazna
-            </div>
-          ) : (
-            <table className='w-full text-sm'>
-              <thead>
-                <tr className='text-left text-xs text-gray-400 bg-neutral-50 border-b border-neutral-100'>
-                  <th className='px-6 py-3'>Proizvod</th>
-                  <th className='px-6 py-3 text-center'>Količina</th>
-                  <th className='px-6 py-3 text-right'>Cena</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.productId} className='border-b border-neutral-50 last:border-0'>
-                    <td className='px-6 py-4'>
-                      <div className='flex items-center gap-4'>
-                        <div className='w-14 h-14 rounded-lg bg-neutral-50 border border-neutral-100 shrink-0 overflow-hidden flex items-center justify-center p-1'>
-                          <img src={item.image} alt={item.name} className='w-full h-full object-contain' />
-                        </div>
-                        <div className='flex flex-col'>
-                          <span className='font-medium text-neutral-800'>{item.name}</span>
-                          {item.category && (
-                            <span className='text-xs text-gray-400 mt-0.5'>{item.category}</span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 text-center'>
-                      <span className='inline-block px-3 py-1 bg-neutral-100 rounded-md text-neutral-700 font-medium'>
-                        {item.quantity}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4'>
-                      <div className='flex items-center justify-end gap-4'>
-                        <button
-                          onClick={() => removeItem(item.productId)}
-                          className='text-gray-300 hover:text-red-500 transition-colors cursor-pointer'
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                        <span className='font-semibold text-neutral-800 min-w-[100px] text-right'>
-                          {fmt(item.price * item.quantity)} RSD
-                        </span>
-                      </div>
-                    </td>
+            {loading ? (
+              <div className='flex items-center justify-center py-20 text-sm text-gray-400'>
+                Učitavanje...
+              </div>
+            ) : items.length === 0 ? (
+              <div className='flex items-center justify-center py-20 text-sm text-gray-400'>
+                Korpa je prazna
+              </div>
+            ) : (
+              <table className='w-full text-sm'>
+                <thead>
+                  <tr className='text-left text-xs text-gray-400 bg-neutral-50 border-b border-neutral-100'>
+                    <th className='px-6 py-3'>Proizvod</th>
+                    <th className='px-6 py-3 text-center'>Količina</th>
+                    <th className='px-6 py-3 text-right'>Cena</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.productId} className='border-b border-neutral-50 last:border-0'>
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-4'>
+                          <div className='w-14 h-14 rounded-lg bg-neutral-50 border border-neutral-100 shrink-0 overflow-hidden flex items-center justify-center p-1'>
+                            <img src={item.image} alt={item.name} className='w-full h-full object-contain' />
+                          </div>
+                          <div className='flex flex-col'>
+                            <span className='font-medium text-neutral-800'>{item.name}</span>
+                            {item.category && (
+                              <span className='text-xs text-gray-400 mt-0.5'>{item.category}</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 text-center'>
+                        <span className='inline-block px-3 py-1 bg-neutral-100 rounded-md text-neutral-700 font-medium'>
+                          {item.quantity}
+                        </span>
+                      </td>
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center justify-end gap-4'>
+                          <button
+                            onClick={() => removeItem(item.productId)}
+                            className='text-gray-300 hover:text-red-500 transition-colors cursor-pointer'
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                          <span className='font-semibold text-neutral-800 min-w-[100px] text-right'>
+                            {fmt(item.price * item.quantity)} RSD
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
 
-          <div className='flex items-center gap-4 p-6'>
-            <Link to={'/'} className='py-1 px-3 rounded-md border border-gray-300 cursor-pointer'>Vrati se na pocetnu</Link>
-            <button
-              onClick={clearCart}
-              disabled={items.length === 0}
-              className={`py-1 px-3 rounded-md text-white ${
-                items.length === 0
-                  ? 'bg-red-300 cursor-not-allowed'
-                  : 'bg-red-500 cursor-pointer'
-              }`}
-            >
-              Poništi korpu
-            </button>
+            <div className='flex items-center gap-4 p-6'>
+              <Link to={'/'} className='py-1 px-3 rounded-md border border-gray-300 cursor-pointer'>Vrati se na pocetnu</Link>
+              <button
+                onClick={clearCart}
+                disabled={items.length === 0}
+                className={`py-1 px-3 rounded-md text-white ${
+                  items.length === 0
+                    ? 'bg-red-300 cursor-not-allowed'
+                    : 'bg-red-500 cursor-pointer'
+                }`}
+              >
+                Poništi korpu
+              </button>
+            </div>
           </div>
+
+          {/* Adrese dostave */}
+          {userId && userAddresses.length > 0 && (
+            <div className='bg-white p-4 flex flex-col gap-3 rounded-md'>
+              <h3 className='font-semibold'>Adresa dostave</h3>
+              <div className='flex flex-col gap-2'>
+                {userAddresses.map(addr => (
+                  <label
+                    key={addr.addressId}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedAddressId === addr.addressId
+                        ? 'border-yellow-400 bg-yellow-50'
+                        : 'border-neutral-200 hover:bg-neutral-50'
+                    }`}
+                  >
+                    <input
+                      type='radio'
+                      name='deliveryAddress'
+                      value={addr.addressId}
+                      checked={selectedAddressId === addr.addressId}
+                      onChange={() => {
+                        if (userAddresses.length > 1) setSelectedAddressId(addr.addressId)
+                      }}
+                      disabled={userAddresses.length === 1}
+                      className='accent-yellow-400 mt-0.5 cursor-pointer'
+                    />
+                    <div className='flex items-start gap-2 min-w-0'>
+                      <FiMapPin className='text-yellow-500 mt-0.5 shrink-0' size={14} />
+                      <div className='text-sm text-neutral-700 leading-snug'>
+                        <p className='font-medium'>{addr.streetName} {addr.streetNumber}{addr.floor ? `, sp. ${addr.floor}` : ''}{addr.doorNumber ? `, st. ${addr.doorNumber}` : ''}</p>
+                        <p className='text-xs text-gray-400'>{addr.postalCode} {addr.city}, {addr.country}</p>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+        
 
         {/* Summary */}
         <div className='flex flex-col gap-4'>
-        {/* Kupon */}
-          {
-            userId && (
-              <div className='bg-white p-4 flex flex-col gap-4 rounded-md'>
-                <h3 className='font-semibold'>Iskoristi kod</h3>
-                <div className='flex gap-2'>
-                  <input
-                    type='text'
-                    value={couponCode}
-                    onChange={e => setCouponCode(e.target.value)}
-                    placeholder='Unesite kod...'
-                    className='flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition-colors'
-                  />
-                  <button
-                    onClick={handleApplyCoupon}
-                    className='px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap'
-                  >
-                    Primeni
-                  </button>
-                </div>
+
+          {/* Kupon */}
+          {userId && (
+            <div className='bg-white p-4 flex flex-col gap-4 rounded-md'>
+              <h3 className='font-semibold'>Iskoristi kod</h3>
+              <div className='flex gap-2'>
+                <input
+                  type='text'
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value)}
+                  placeholder='Unesite kod...'
+                  className='flex-1 border border-neutral-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-yellow-400 transition-colors'
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  className='px-3 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap'
+                >
+                  Primeni
+                </button>
               </div>
-            )
-          }
+            </div>
+          )}
+
           
+
+          {/* SUmmary */}
           <div className='bg-white border border-gray-100 w-80 shrink-0 rounded-xl p-6 flex flex-col gap-4'>
             <h2 className='text-lg font-semibold text-neutral-800'>Za plaćanje</h2>
             <div className='flex flex-col gap-2 text-sm text-neutral-600'>

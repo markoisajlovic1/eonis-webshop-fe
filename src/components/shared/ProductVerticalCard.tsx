@@ -2,11 +2,12 @@ import React from 'react'
 import { Link } from 'react-router-dom';
 import { FiHeart } from 'react-icons/fi';
 import { LuShoppingCart } from "react-icons/lu";
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store/store';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../store/store';
 import { wishlistService } from '../../services/wishlistService';
 import { cartService } from '../../services/cartService/cartService';
 import { cartServiceLS } from '../../services/cartService/cartServiceLS';
+import { increment } from '../../store/slices/cartSlice'
 // izmeniti da ako user nije ulogovan da ne izlazi srce za wishlist
 interface ProductVerticalCardProps {
   name: string;
@@ -19,6 +20,7 @@ interface ProductVerticalCardProps {
 const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image, slug }) => {
   const formatPrice = (p: number) => p.toLocaleString('sr-RS');
   const userId = useSelector((state: RootState) => state.auth.userId);
+  const dispatch = useDispatch<AppDispatch>();
 
   const handleAddToWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,16 +36,22 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
     } else {
       cartServiceLS.add({ productId: slug, productName: name, price, image });
     }
+
+    dispatch(increment());
   };
 
   return (
     <Link to={`/proizvodi/${slug}`} className="relative bg-white rounded-xl shadow-xs border border-neutral-100 p-4 flex flex-col gap-4 group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
-      <button
-        onClick={handleAddToWishlist}
-        className="absolute top-3 right-3 z-10 w-9 h-9 bg-yellow-400 border-neutral-200 rounded-full flex items-center cursor-pointer justify-center text-white hover:bg-yellow-600 transition-all shadow-sm"
-      >
-        <FiHeart size={16} />
-      </button>
+      {
+        userId && (
+          <button
+            onClick={handleAddToWishlist}
+            className="absolute top-3 right-3 z-10 w-9 h-9 bg-yellow-400 border-neutral-200 rounded-full flex items-center cursor-pointer justify-center text-white hover:bg-yellow-600 transition-all shadow-sm"
+          >
+            <FiHeart size={16} />
+          </button>
+        )
+      }
       <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-50 flex items-center justify-center p-4">
         <img 
           src={image} 

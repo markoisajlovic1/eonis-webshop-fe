@@ -1,6 +1,6 @@
 import axiosInstance from './api/axiosInstance'
 import { AxiosError } from 'axios'
-import type { UserDTO, UserFilterParams, UserFilterResult, CreateUserDTO, UpdateUserDTO, UserError } from '../types/user'
+import type { UserDTO, UserDetailsDTO, UserFilterParams, UserFilterResult, CreateUserDTO, UpdateUserDTO, UserError } from '../types/user'
 
 class UsersService {
   private readonly ENDPOINT = '/api/User'
@@ -17,6 +17,15 @@ class UsersService {
   async filter(params: UserFilterParams): Promise<UserFilterResult> {
     try {
       const { data } = await axiosInstance.get<UserFilterResult>(`${this.ENDPOINT}/filter`, { params })
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async getUserDetails(id: string): Promise<UserDetailsDTO> {
+    try {
+      const { data } = await axiosInstance.get<UserDetailsDTO>(`${this.ENDPOINT}/${id}/user-details`)
       return data
     } catch (error) {
       throw this.handleError(error)

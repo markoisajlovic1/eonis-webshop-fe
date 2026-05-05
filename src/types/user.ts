@@ -1,4 +1,16 @@
 import type { Role } from './auth'
+import type { AddressDTO } from './address'
+
+export interface UserDetailsDTO {
+  userId: string
+  username: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  role: Role
+  addresses: AddressDTO[]
+}
 
 export interface UserDTO {
   userId: string

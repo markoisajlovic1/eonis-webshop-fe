@@ -18,7 +18,8 @@ import { MdLogout } from "react-icons/md";
 
 
 const Header: React.FC = () => {
-  const { username } = useSelector((state: RootState) => state.auth);
+  const { username } = useSelector((state: RootState) => state.auth)
+  const cartCount = useSelector((state: RootState) => state.cart.count)
   const dispatch = useDispatch();
   const { data: categories = [] } = useCategories();
   const navigate = useNavigate();
@@ -154,7 +155,9 @@ const Header: React.FC = () => {
         <Link to={"/cart"} className="px-5 py-2 text-sm font-semibold text-white bg-black rounded-lg hover:bg-neutral-800 hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-black/10 transition-all flex items-center gap-2 cursor-pointer relative">
           <LuShoppingCart className='text-white text-xl'/>
           <span className='text-white font-light'>Korpa</span>
-          <div className='bg-yellow-400 w-4 h-4 text-center top-0 left-8 rounded-full absolute text-xs text-black'>10</div>
+          {cartCount > 0 && (
+            <div className='bg-yellow-400 w-4 h-4 text-center top-0 left-8 rounded-full absolute text-xs text-black'>{cartCount}</div>
+          )}
         </Link>
         {
           username && (

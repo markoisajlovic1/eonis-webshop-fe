@@ -15,12 +15,14 @@ export interface CreateAddressDTO {
 
 export interface CreateCheckoutSessionDTO {
   userId?: string | null
+  addressId?: string | null
   items: CheckoutItemDTO[]
   address?: CreateAddressDTO
 }
 
 export interface CashPaymentDTO {
   userId?: string | null
+  addressId?: string | null
   items: CheckoutItemDTO[]
   address?: CreateAddressDTO
 }
