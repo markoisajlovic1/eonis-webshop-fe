@@ -6,6 +6,7 @@ import type {
   UpdateProductDTO,
   ProductError,
   ProductFilterParams,
+  PublicProductFilterParams,
   ProductFilterResult,
 } from '../types/product'
 
@@ -60,6 +61,17 @@ class ProductService {
   async filter(params: ProductFilterParams): Promise<ProductFilterResult> {
     try {
       const { data } = await axiosInstance.get<ProductFilterResult>(`${this.ENDPOINT}/filter`, {
+        params,
+      })
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async publicFilter(params: PublicProductFilterParams): Promise<ProductFilterResult> {
+    try {
+      const { data } = await axiosInstance.get<ProductFilterResult>(`${this.ENDPOINT}/public-filter`, {
         params,
       })
       return data

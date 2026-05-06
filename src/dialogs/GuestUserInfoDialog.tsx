@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { IoClose } from 'react-icons/io5'
 
-export interface AddressFormData {
+export interface GuestUserInfoFormData {
+  email: string
   postalCode: string
   streetName: string
   streetNumber: string
@@ -11,24 +12,26 @@ export interface AddressFormData {
   doorNumber: string
 }
 
-interface AddressDialogProps {
+interface GuestUserInfoDialogProps {
   isCashOnDelivery: boolean
-  onConfirm: (address: AddressFormData) => void
+  onConfirm: (data: GuestUserInfoFormData) => void
   onClose: () => void
 }
 
-// posebna komponenta za field
 const Field = ({
-  label, value, onChange, placeholder, type = 'text',
+  label, value, onChange, placeholder, type = 'text', required = true,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   placeholder?: string
   type?: string
+  required?: boolean
 }) => (
   <div className="flex flex-col gap-1">
-    <label className="text-xs font-medium text-neutral-600">{label} <span className='text-red-500'>*</span></label>
+    <label className="text-xs font-medium text-neutral-600">
+      {label} {required && <span className='text-red-500'>*</span>}
+    </label>
     <input
       type={type}
       value={value}
@@ -39,7 +42,8 @@ const Field = ({
   </div>
 )
 
-const AddressDialog = ({ isCashOnDelivery, onConfirm, onClose }: AddressDialogProps) => {
+const GuestUserInfoDialog = ({ isCashOnDelivery, onConfirm, onClose }: GuestUserInfoDialogProps) => {
+  const [email, setEmail] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [streetName, setStreetName] = useState('')
   const [streetNumber, setStreetNumber] = useState('')
@@ -48,11 +52,12 @@ const AddressDialog = ({ isCashOnDelivery, onConfirm, onClose }: AddressDialogPr
   const [floor, setFloor] = useState('')
   const [doorNumber, setDoorNumber] = useState('')
 
-  const isValid = postalCode.trim() && streetName.trim() && streetNumber.trim() && city.trim() && country.trim()
+  const isValid = email.trim() && postalCode.trim() && streetName.trim() && streetNumber.trim() && city.trim() && country.trim()
 
   const handleConfirm = () => {
     if (!isValid) return
     onConfirm({
+      email: email.trim(),
       postalCode: postalCode.trim(),
       streetName: streetName.trim(),
       streetNumber: streetNumber.trim(),
@@ -65,7 +70,7 @@ const AddressDialog = ({ isCashOnDelivery, onConfirm, onClose }: AddressDialogPr
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-125 p-6 flex flex-col gap-5 relative">
+      <div className="bg-white rounded-xl shadow-xl w-125 p-6 flex flex-col gap-5 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
@@ -74,20 +79,26 @@ const AddressDialog = ({ isCashOnDelivery, onConfirm, onClose }: AddressDialogPr
         </button>
 
         <div>
-          <h2 className="text-lg font-semibold text-neutral-800">Adresa dostave</h2>
-          <p className="text-sm text-gray-400 mt-0.5">Unesite adresu na koju želite da primite paket</p>
+          <h2 className="text-lg font-semibold text-neutral-800">Podaci za dostavu</h2>
+          <p className="text-sm text-gray-400 mt-0.5">Unesite kontakt i adresu na koju želite da primite paket</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <Field label="Ulica" value={streetName} onChange={setStreetName} placeholder="Naziv ulice" />
+        <div className="flex flex-col gap-3">
+          <Field label="Email adresa" value={email} onChange={setEmail} placeholder="npr. marko@email.com" type="email" />
+
+          <hr className="border-neutral-100" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Field label="Ulica" value={streetName} onChange={setStreetName} placeholder="Naziv ulice" />
+            </div>
+            <Field label="Broj" value={streetNumber} onChange={setStreetNumber} placeholder="npr. 12" />
+            <Field label="Poštanski broj" value={postalCode} onChange={setPostalCode} placeholder="npr. 11000" />
+            <Field label="Sprat" value={floor} onChange={setFloor} placeholder="npr. 2" type="number" required={false} />
+            <Field label="Broj stana" value={doorNumber} onChange={setDoorNumber} placeholder="npr. 4A" required={false} />
+            <Field label="Grad" value={city} onChange={setCity} placeholder="npr. Beograd" />
+            <Field label="Država" value={country} onChange={setCountry} placeholder="npr. Srbija" />
           </div>
-          <Field label="Broj" value={streetNumber} onChange={setStreetNumber} placeholder="npr. 12" />
-          <Field label="Poštanski broj" value={postalCode} onChange={setPostalCode} placeholder="npr. 11000" />
-          <Field label="Sprat" value={floor} onChange={setFloor} placeholder="npr. 2" type="number" />
-          <Field label="Broj stana" value={doorNumber} onChange={setDoorNumber} placeholder="npr. 4A" />
-          <Field label="Grad" value={city} onChange={setCity} placeholder="npr. Beograd" />
-          <Field label="Država" value={country} onChange={setCountry} placeholder="npr. Srbija" />
         </div>
 
         <div className="flex gap-3 pt-1">
@@ -110,4 +121,4 @@ const AddressDialog = ({ isCashOnDelivery, onConfirm, onClose }: AddressDialogPr
   )
 }
 
-export default AddressDialog
+export default GuestUserInfoDialog

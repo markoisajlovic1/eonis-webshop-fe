@@ -16,6 +16,7 @@ export interface CreateAddressDTO {
 export interface CreateCheckoutSessionDTO {
   userId?: string | null
   addressId?: string | null
+  email?: string | null
   items: CheckoutItemDTO[]
   address?: CreateAddressDTO
 }
@@ -23,6 +24,7 @@ export interface CreateCheckoutSessionDTO {
 export interface CashPaymentDTO {
   userId?: string | null
   addressId?: string | null
+  email?: string | null
   items: CheckoutItemDTO[]
   address?: CreateAddressDTO
 }

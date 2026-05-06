@@ -8,7 +8,7 @@ interface BrandsCardProps {
 const BrandsCard: React.FC<BrandsCardProps> = ({ name, image }) => {
   return (
     <div className="flex flex-col items-center gap-2 group cursor-pointer transition-transform hover:scale-105">
-      <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white border border-neutral-100 shadow-sm flex items-center justify-center p-6 transition-all group-hover:shadow-md group-hover:border-neutral-300">
+      <div className="w-30 h-30 md:w-42 md:h-42 rounded-full bg-white border border-neutral-100 shadow-sm flex items-center justify-center p-6 transition-all group-hover:shadow-md group-hover:border-neutral-300">
         <img 
           src={image} 
           alt={name} 

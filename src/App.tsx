@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import './App.css'
 import Header from './components/user/Header'
+import Footer from './components/user/Footer'
 import { Outlet } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -37,6 +38,7 @@ function App() {
       <main className='flex-1 flex flex-col'>
         <Outlet />
       </main>
+      <Footer />
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   )

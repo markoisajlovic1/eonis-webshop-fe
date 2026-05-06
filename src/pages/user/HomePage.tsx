@@ -5,7 +5,7 @@ import ProductVerticalCard from '../../components/shared/ProductVerticalCard';
 import CategoryCard from '../../components/shared/CategoryCard';
 import BrandsCard from '../../components/shared/BrandsCard';
 import { useCategories } from '../../hooks/useCategories';
-import { brands } from '../../mockData/brands';
+import { useBrands } from '../../hooks/useBrands';
 import { productService } from '../../services/productService';
 import type { ProductDTO } from '../../types/product';
 import { FaBoxes } from "react-icons/fa";
@@ -14,6 +14,7 @@ import CheckOrderStatusDialog from '../../dialogs/CheckOrderStatusDialog';
 
 const HomePage = () => {
   const { data: categories = [] } = useCategories()
+  const { data: brands = [] } = useBrands()
   const [recommended, setRecommended] = useState<ProductDTO[]>([])
   const [checkOrderOpen, setCheckOrderOpen] = useState(false)
 
@@ -57,7 +58,7 @@ const HomePage = () => {
                     <button className="text-sm font-semibold text-neutral-500 hover:text-black transition-colors">Vidi sve</button>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                    {categories.map(cat => (
+                    {categories.slice(0, 10).map(cat => (
                         <CategoryCard key={cat.categoryId} id={cat.categoryId} name={cat.name} />
                     ))}
                 </div>
@@ -89,12 +90,12 @@ const HomePage = () => {
                     <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">Brendovi</h2>
                     <button className="text-sm font-semibold text-neutral-500 hover:text-black transition-colors">Svi brendovi</button>
                 </div>
-                <div className="flex items-center gap-6 md:gap-12 overflow-x-auto no-scrollbar pb-4 md:justify-between">
-                    {brands.map(brand => (
-                        <BrandsCard 
-                            key={brand.id}
-                            name={brand.name}
-                            image={brand.image}
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-10 md:gap-12  pb-4 md:justify-between mb-10">
+                    {brands.slice(0, 12).map(brand => (
+                        <BrandsCard
+                            key={brand.brandId}
+                            name={brand.brandName}
+                            image={brand.brandImage}
                         />
                     ))}
                 </div>

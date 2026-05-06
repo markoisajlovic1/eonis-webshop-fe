@@ -11,8 +11,8 @@ import { usersService } from '../../services/usersService'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { decrement, clearCart as clearCartCount } from '../../store/slices/cartSlice'
-import AddressDialog from '../../dialogs/AddressDialog'
-import type { AddressFormData } from '../../dialogs/AddressDialog'
+import GuestUserInfoDialog from '../../dialogs/GuestUserInfoDialog'
+import type { GuestUserInfoFormData } from '../../dialogs/GuestUserInfoDialog'
 import type { AddressDTO } from '../../types/address'
 
 type PaymentMethod = 'card' | 'cash'
@@ -37,6 +37,7 @@ const CartPage = () => {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false)
   const [userAddresses, setUserAddresses] = useState<AddressDTO[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   useEffect(() => {
     if (userId) {
@@ -62,6 +63,7 @@ const CartPage = () => {
       // da bi dobio info o userovim adresama
       usersService.getUserDetails(userId)
         .then(details => {
+          setUserEmail(details.email)
           setUserAddresses(details.addresses)
           if (details.addresses.length > 0) {
             setSelectedAddressId(details.addresses[0].addressId)
@@ -116,23 +118,26 @@ const CartPage = () => {
       return
     }
 
-    // logged in, card payment — send selected addressId
+    // logged in, card payment — send selected addressId and email
     paymentService.createCheckoutSession({
       userId,
       addressId: selectedAddressId,
+      email: userEmail,
       items: cartItems,
     })
       .then(result => { window.location.href = result.url })
       .catch(console.error)
   }
 
-  const handleAddressConfirm = (address: AddressFormData) => {
+  const handleGuestConfirm = (data: GuestUserInfoFormData) => {
     setAddressDialogOpen(false)
     const cartItems = items.map(i => ({ productId: i.productId, quantity: i.quantity }))
+    const { email, ...address } = data
     if (paymentMethod === 'cash') {
       paymentService.cashPayment({
         userId: userId ?? null,
         addressId: null,
+        email,
         items: cartItems,
         address,
       })
@@ -142,6 +147,7 @@ const CartPage = () => {
       paymentService.createCheckoutSession({
         userId: userId ?? null,
         addressId: null,
+        email,
         items: cartItems,
         address,
       })
@@ -426,9 +432,9 @@ const CartPage = () => {
       </div>
 
       {addressDialogOpen && (
-        <AddressDialog
+        <GuestUserInfoDialog
           isCashOnDelivery={isCash}
-          onConfirm={handleAddressConfirm}
+          onConfirm={handleGuestConfirm}
           onClose={() => setAddressDialogOpen(false)}
         />
       )}

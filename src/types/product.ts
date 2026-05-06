@@ -54,10 +54,21 @@ export interface ProductError {
 
 export type ProductSort = 'NameAsc' | 'NameDesc' | 'PriceAsc' | 'PriceDesc'
 
+export interface PublicProductFilterParams {
+  term?: string
+  categoryId?: string[]
+  subcategoryId?: string[]
+  brandId?: string[]
+  sort?: ProductSort
+  pageNumber?: number
+  pageSize?: number
+}
+
 export interface ProductFilterParams {
   term?: string
   categoryId?: string
   subcategoryId?: string
+  brandId?: string
   sort?: ProductSort
   isPublished?: boolean
   pageNumber?: number
