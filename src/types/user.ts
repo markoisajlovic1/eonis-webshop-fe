@@ -12,6 +12,8 @@ export interface UserDetailsDTO {
   addresses: AddressDTO[]
 }
 
+export type UserRole = Role | 0 | 1
+
 export interface UserDTO {
   userId: string
   username: string
@@ -19,7 +21,7 @@ export interface UserDTO {
   firstName: string
   lastName: string
   phone: string
-  role: Role
+  role: UserRole
 }
 
 export interface CreateUserDTO {

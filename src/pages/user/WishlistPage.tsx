@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { LuShoppingCart } from 'react-icons/lu'
-import { useSelector } from 'react-redux'
-import type { RootState } from '../../store/store'
+import { useDispatch, useSelector } from 'react-redux'
+import type { AppDispatch, RootState } from '../../store/store'
 import { wishlistService } from '../../services/wishlistService'
 import type { ProductDTO } from '../../types/product'
+import { cartService } from '../../services/cartService/cartService'
+import { cartServiceLS } from '../../services/cartService/cartServiceLS'
+import { increment } from '../../store/slices/cartSlice'
 
 const PAGE_SIZE = 5
 const fmt = (n: number) => n.toLocaleString('sr-RS')
@@ -19,8 +22,13 @@ const WishlistPage = () => {
   const [sortAZ, setSortAZ] = useState(false)
   const [page, setPage] = useState(1)
 
+  const dispatch = useDispatch<AppDispatch>();
+
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!userId) { setLoading(false); return }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     wishlistService.getByUserId(userId, {
       hasDiscount,
@@ -52,6 +60,20 @@ const WishlistPage = () => {
   const handleSortAZ = (value: boolean) => {
     setSortAZ(value)
     setPage(1)
+  }
+
+  const handleAddToCart = (product: ProductDTO) => {
+    if (userId) {
+      cartService.create({ userId, productId: product.productId, quantity: 1 }).catch(console.error)
+    } else {
+      cartServiceLS.add({
+        productId: product.productId,
+        productName: product.productName,
+        price: product.price,
+        image: product.images[0]?.imageLink ?? '',
+      })
+    }
+    dispatch(increment())
   }
 
   return (
@@ -148,7 +170,7 @@ const WishlistPage = () => {
                     </td>
                     <td className='px-6 py-4'>
                       <div className='flex items-center justify-end gap-3'>
-                        <button className='flex items-center gap-2 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer'>
+                        <button onClick={() => handleAddToCart(product)} className='flex items-center gap-2 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer'>
                           <LuShoppingCart size={14} />
                           Dodaj u korpu
                         </button>

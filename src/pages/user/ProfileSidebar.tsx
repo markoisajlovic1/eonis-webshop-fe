@@ -14,13 +14,14 @@ const ProfileSidebar = () => {
   }
 
   return (
-    <div className="w-80 border-r border-neutral-100 bg-white flex flex-col min-h-[calc(100vh-80px)] justify-between">
+    <div className="w-80 border-r border-neutral-300 bg-white flex flex-col min-h-[calc(100vh-80px)] justify-between">
       
 
       <div className='flex flex-col'>
         <div className="p-8 border-b border-neutral-50 mb-4">
             <h2 className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Moj nalog</h2>
         </div>
+
         <nav className="flex-1 px-4 flex flex-col gap-2">
             {SIDEBAR_ITEMS.map((item) => (
             <NavLink
@@ -28,10 +29,10 @@ const ProfileSidebar = () => {
                 to={item.path}
                 end={item.end}
                 className={({ isActive }) => `
-                flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300
+                flex items-center gap-4 px-4 py-2.5 text-sm font-semibold transition-all
                 ${isActive 
-                    ? 'text-black font-semibold translate-x-1' 
-                    : 'text-neutral-500 hover:bg-neutral-50 hover:text-black hover:pl-6'}
+                    ? 'text-black font-semibold bg-neutral-100 border-l border-yellow-500' 
+                    : 'text-neutral-500 hover:bg-neutral-50 hover:text-black border-l-2 border-transparent'}
                 `}
             >
                 {item.icon}

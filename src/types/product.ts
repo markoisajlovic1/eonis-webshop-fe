@@ -77,6 +77,24 @@ export interface ProductFilterParams {
   pageSize?: number
 }
 
+export interface PublicProductPaginationDTO {
+  pageNumber: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+export interface PublicProductFiltersDTO {
+  minPrice: number
+  maxPrice: number
+}
+
+export interface PublicProductResultDTO {
+  items: ProductDTO[]
+  pagination: PublicProductPaginationDTO
+  filters: PublicProductFiltersDTO
+}
+
 export interface ProductFilterResult {
   items: ProductDTO[]
   totalCount: number

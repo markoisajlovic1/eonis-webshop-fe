@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { FiSearch, FiChevronLeft, FiChevronRight, FiChevronDown } from 'react-icons/fi'
+import { MdOutlineEdit } from 'react-icons/md'
+import { IoTrashBinOutline } from 'react-icons/io5'
+import { GrUserAdmin } from 'react-icons/gr'
 import { usersService } from '../../services/usersService'
+import EditUserDialog from '../../dialogs/EditUserDialog'
+import { toast } from 'react-toastify'
 import type { UserDTO, UserSort, UserSearchBy } from '../../types/user'
+import { GiArmorDowngrade } from "react-icons/gi";
 
 const PAGE_SIZE = 5
 
@@ -38,38 +44,74 @@ const UsersPage = () => {
   const [sort, setSort] = useState<UserSort>(0)
   const [roleTab, setRoleTab] = useState<0 | 1>(1)
   const [page, setPage] = useState(1)
+  const [editingUser, setEditingUser] = useState<UserDTO | null>(null)
 
-  const fetchPage = useCallback((p: number) => {
+  // cisto da se na delete i promote i demote usera retrigeruje useeffect
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     usersService.filter({
       role: roleTab,
       term: term.trim() || undefined,
       searchBy,
       sort,
-      pageNumber: p,
+      pageNumber: page,
       pageSize: PAGE_SIZE,
     })
       .then(result => {
+        if (cancelled) return
         setUsers(result.items)
         setTotalCount(result.totalCount)
         setTotalPages(Math.max(1, result.totalPages))
       })
-      .catch(console.error)
-      .finally(() => setLoading(false))
-  }, [roleTab, term, searchBy, sort])
-
-  useEffect(() => {
-    fetchPage(page)
-  }, [page, fetchPage])
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [roleTab, term, searchBy, sort, page, refreshKey])
 
   const handleRoleChange = (v: 0 | 1) => { setRoleTab(v); setPage(1) }
   const handleSortChange = (v: UserSort) => { setSort(v); setPage(1) }
   const handleTermChange = (v: string) => { setTerm(v); setPage(1) }
   const handleSearchByChange = (v: UserSearchBy) => { setSearchBy(v); setSearchByOpen(false); setPage(1) }
 
+  const handleDelete = (userId: string) => {
+    usersService.delete(userId)
+      .then(() => {
+        setUsers(prev => prev.filter(u => u.userId !== userId))
+        setTotalCount(prev => prev - 1)
+        toast.success('Korisnik obrisan')
+        setRefreshKey(prev => prev + 1)
+      })
+      .catch(() => toast.error('Greška pri brisanju'))
+  }
+
+  const handleRoleToggle = (user: UserDTO) => {
+    const isEmployee = user.role === 0
+    const action = isEmployee
+      ? usersService.demoteToUser(user.userId)
+      : usersService.promoteToEmployee(user.userId)
+
+    action
+      .then(updated => {
+        setUsers(prev => prev.filter(u => u.userId !== updated.userId))
+        setTotalCount(prev => prev - 1)
+        toast.success(isEmployee ? 'Korisnik degradiran na Customer' : 'Korisnik promovisan u Employee')
+        setRefreshKey(prev => prev + 1)
+      })
+      .catch(() => toast.error('Greška pri promeni uloge'))
+  }
+
+  const handleSaved = (updated: UserDTO) => {
+    setUsers(prev => prev.map(u => u.userId === updated.userId ? updated : u))
+  }
+
   const searchByLabel = SEARCH_BY_OPTIONS.find(o => o.value === searchBy)?.label ?? ''
 
   return (
+    <>
     <div className="p-8 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
@@ -79,12 +121,11 @@ const UsersPage = () => {
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        {/* Search + SearchBy picker */}
         <div className="flex items-center flex-1 max-w-sm">
           <div className="relative">
             <button
               onClick={() => setSearchByOpen(o => !o)}
-              className="flex items-center gap-1.5 h-full px-3 py-2.5 bg-white border border-r-0 border-neutral-200 rounded-l-lg text-xs text-neutral-600 hover:bg-neutral-50 transition-colors cursor-pointer whitespace-nowrap outline-none"
+              className="flex items-center gap-1.5 h-full px-3 py-3 bg-white border border-r-0 border-neutral-200 rounded-l-lg text-xs text-neutral-600 hover:bg-neutral-50 transition-colors cursor-pointer whitespace-nowrap outline-none"
             >
               {searchByLabel}
               <FiChevronDown size={12} className={`transition-transform ${searchByOpen ? 'rotate-180' : ''}`} />
@@ -150,20 +191,17 @@ const UsersPage = () => {
               <th className="px-6 py-3.5">Ime i prezime</th>
               <th className="px-6 py-3.5">Email</th>
               <th className="px-6 py-3.5">Telefon</th>
+              <th className="px-6 py-3.5 text-center">Akcije</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
-                  Učitavanje...
-                </td>
+                <td colSpan={5} className="px-6 py-10 text-center text-gray-400">Učitavanje...</td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
-                  Nema korisnika
-                </td>
+                <td colSpan={5} className="px-6 py-10 text-center text-gray-400">Nema korisnika</td>
               </tr>
             ) : (
               users.map(user => (
@@ -172,6 +210,31 @@ const UsersPage = () => {
                   <td className="px-6 py-4 text-neutral-600">{user.firstName} {user.lastName}</td>
                   <td className="px-6 py-4 text-neutral-500">{user.email}</td>
                   <td className="px-6 py-4 text-neutral-500">{user.phone}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-3 text-neutral-400">
+                      <button
+                        onClick={() => setEditingUser(user)}
+                        title="Uredi korisnika"
+                        className="hover:text-black transition-colors cursor-pointer"
+                      >
+                        <MdOutlineEdit size={17} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.userId)}
+                        title="Obriši korisnika"
+                        className="hover:text-red-500 transition-colors cursor-pointer"
+                      >
+                        <IoTrashBinOutline size={17} />
+                      </button>
+                      <button
+                        onClick={() => handleRoleToggle(user)}
+                        title={user.role === 0 ? 'Demote to Customer' : 'Promote to Employee'}
+                        className="hover:text-amber-500 transition-colors cursor-pointer"
+                      >
+                        {user.role === 0 ? <GiArmorDowngrade size={16} /> : <GrUserAdmin size={15} />}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -210,6 +273,15 @@ const UsersPage = () => {
         </div>
       )}
     </div>
+
+    {editingUser && (
+      <EditUserDialog
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+        onSaved={handleSaved}
+      />
+    )}
+    </>
   )
 }
 

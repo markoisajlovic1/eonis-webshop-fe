@@ -8,6 +8,7 @@ import type {
   ProductFilterParams,
   PublicProductFilterParams,
   ProductFilterResult,
+  PublicProductResultDTO,
 } from '../types/product'
 
 class ProductService {
@@ -69,9 +70,9 @@ class ProductService {
     }
   }
 
-  async publicFilter(params: PublicProductFilterParams): Promise<ProductFilterResult> {
+  async publicFilter(params: PublicProductFilterParams): Promise<PublicProductResultDTO> {
     try {
-      const { data } = await axiosInstance.get<ProductFilterResult>(`${this.ENDPOINT}/public-filter`, {
+      const { data } = await axiosInstance.get<PublicProductResultDTO>(`${this.ENDPOINT}/public-filter`, {
         params,
       })
       return data

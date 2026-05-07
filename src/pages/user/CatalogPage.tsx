@@ -8,6 +8,7 @@ import { useSubcategories } from '../../hooks/useSubcategories';
 import { useBrands } from '../../hooks/useBrands';
 import { productService } from '../../services/productService';
 import { toSlug } from '../../utils/slug';
+import DualRangeSlider from '../../components/shared/DualRangeSlider';
 import type { ProductDTO, ProductSort } from '../../types/product';
 import type { CategoryDTO } from '../../types/categories';
 
@@ -48,17 +49,25 @@ const CatalogPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [priceAbsolute, setPriceAbsolute] = useState<{ min: number; max: number } | null>(null)
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
+
+  // Stable string deps to avoid infinite loop from array identity changes
+  const brandsKey = filters.brands.join(',')
+  const subcatsKey = validSubcategories.join(',')
 
   useEffect(() => {
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
+    const brands = brandsKey ? brandsKey.split(',') : []
+    const subcats = subcatsKey ? subcatsKey.split(',') : []
     productService.publicFilter({
       category: filters.category ?? undefined,
-      subcategory: validSubcategories.length > 0 ? validSubcategories : undefined,
-      brand: filters.brands.length > 0 ? filters.brands : undefined,
-      priceMin: filters.priceMin ?? undefined,
-      priceMax: filters.priceMax ?? undefined,
+      subcategory: subcats.length > 0 ? subcats : undefined,
+      brand: brands.length > 0 ? brands : undefined,
+      priceMin: priceRange?.[0] ?? undefined,
+      priceMax: priceRange?.[1] ?? undefined,
       sort: filters.sort,
       pageNumber: filters.page,
       pageSize: PAGE_SIZE,
@@ -66,13 +75,17 @@ const CatalogPage: React.FC = () => {
       .then(result => {
         if (cancelled) return
         setProducts(result.items)
-        setTotalCount(result.totalCount)
-        setTotalPages(result.totalPages)
+        setTotalCount(result.pagination.totalCount)
+        setTotalPages(result.pagination.totalPages)
+        if (result.filters) {
+          setPriceAbsolute(prev => prev ?? { min: result.filters.minPrice, max: result.filters.maxPrice })
+          setPriceRange(prev => prev ?? [result.filters.minPrice, result.filters.maxPrice])
+        }
       })
       .catch(err => { if (!cancelled) console.error(err) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [filters.category, filters.brands, filters.sort, filters.page, filters.priceMin, filters.priceMax, validSubcategories])
+  }, [filters.category, brandsKey, subcatsKey, filters.sort, filters.page, priceRange])
 
   const categoryOptions = useMemo(
     () => categories.map(c => ({ id: toSlug(c.name), label: c.name })),
@@ -162,37 +175,44 @@ const CatalogPage: React.FC = () => {
             />
 
             {/* Price Filter */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100">
-              <h3 className="font-bold mb-4">Cena (RSD)</h3>
-              <div className="flex flex-col gap-4">
-                <input
-                  type="range"
-                  min="0"
-                  max="300000"
-                  step="1000"
-                  defaultValue={300000}
-                  className="w-full accent-black"
-                />
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <span className="text-[10px] text-neutral-400 block ml-1 uppercase">Od</span>
-                    <input
-                      type="number"
-                      defaultValue={0}
-                      className="w-full p-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:border-black"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-[10px] text-neutral-400 block ml-1 uppercase">Do</span>
-                    <input
-                      type="number"
-                      defaultValue={300000}
-                      className="w-full p-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:border-black"
-                    />
+            {priceAbsolute && priceRange && (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-100">
+                <h3 className="font-bold mb-4">Cena (RSD)</h3>
+                <div className="flex flex-col gap-4">
+                  <DualRangeSlider
+                    min={priceAbsolute.min}
+                    max={priceAbsolute.max}
+                    step={Math.max(1, Math.ceil((priceAbsolute.max - priceAbsolute.min) / 100))}
+                    value={priceRange}
+                    onChange={setPriceRange}
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <span className="text-[10px] text-neutral-400 block ml-1 uppercase">Od</span>
+                      <input
+                        type="number"
+                        value={Math.round(priceRange[0])}
+                        min={priceAbsolute.min}
+                        max={priceRange[1]}
+                        onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])}
+                        className="w-full p-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:border-black"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-[10px] text-neutral-400 block ml-1 uppercase">Do</span>
+                      <input
+                        type="number"
+                        value={Math.round(priceRange[1])}
+                        min={priceRange[0]}
+                        max={priceAbsolute.max}
+                        onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])}
+                        className="w-full p-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:border-black"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </aside>
 
           {/* Product Grid */}
@@ -221,7 +241,7 @@ const CatalogPage: React.FC = () => {
               </div>
             )}
 
-            {totalPages > 1 && (
+            {!loading && totalPages > 1 && (
               <div className="flex items-center justify-center gap-1 mt-8">
                 <button
                   onClick={() => setPage(Math.max(1, filters.page - 1))}

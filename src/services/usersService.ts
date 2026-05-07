@@ -67,6 +67,24 @@ class UsersService {
     }
   }
 
+  async promoteToEmployee(id: string): Promise<UserDTO> {
+    try {
+      const { data } = await axiosInstance.put<UserDTO>(`${this.ENDPOINT}/${id}/promote-to-employee`)
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  async demoteToUser(id: string): Promise<UserDTO> {
+    try {
+      const { data } = await axiosInstance.put<UserDTO>(`${this.ENDPOINT}/${id}/demote-to-user`)
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
   private handleError(error: unknown): UserError {
     if (error instanceof AxiosError) {
       const message = error.response?.data?.message || error.message || 'An error occurred'
