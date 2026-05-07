@@ -46,7 +46,7 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       // Skip refresh for auth endpoints to prevent infinite loops
       const url = originalRequest.url || '';
-      const isAuthEndpoint = url.includes('/auth/refresh') || url.includes('/auth/logout');
+      const isAuthEndpoint = url.includes('/api/Auth/refresh') || url.includes('/api/Auth/logout') || url.includes('/api/Auth/login');
       
       if (isAuthEndpoint) {
         return Promise.reject(error);

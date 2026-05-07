@@ -21,6 +21,7 @@ import UsersPage from '../pages/admin/UsersPage';
 import AdminOrdersPage from '../pages/admin/OrdersPage'
 import WishlistPage from '../pages/user/WishlistPage';
 import ReviewsPage from '../pages/user/ReviewsPage';
+import ResetPasswordPage from '../pages/shared/ResetPasswordPage';
 
 export const router = createBrowserRouter([
     {
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <HomePage /> },
             { path: 'auth', element: <AuthPage /> },
+            { path: 'reset-password', element: <ResetPasswordPage /> },
             { path: 'catalog', element: <CatalogPage /> },
             { path: 'proizvodi/:productSlug', element: <ProductPage /> },
             {

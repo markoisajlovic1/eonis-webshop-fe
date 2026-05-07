@@ -68,6 +68,15 @@ class OrderService {
     }
   }
 
+  async getLatest(): Promise<OrderFilterDTO[]> {
+    try {
+      const { data } = await axiosInstance.get<OrderFilterDTO[]>(`${this.ENDPOINT}/latest`);
+      return data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async delete(id: string): Promise<void> {
     try {
       await axiosInstance.delete(`${this.ENDPOINT}/${id}`);

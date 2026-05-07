@@ -1,5 +1,11 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { FiShoppingBag, FiDollarSign, FiAward, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { toast } from 'react-toastify'
+import { useOrdersHub } from '../../hooks/useOrdersHub'
+import type { OrderCreatedPayload } from '../../hooks/useOrdersHub'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../store/store'
+import { Role } from '../../types/auth'
 import {
   ComposedChart,
   Bar,
@@ -11,14 +17,14 @@ import {
   Legend,
 } from 'recharts'
 import { statsService } from '../../services/statsService'
+import { orderService } from '../../services/orderService'
 import type { DashboardStatsDTO, DailyStatsDTO } from '../../types/stats'
-
-const MONTH_NAMES = [
-  'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
-  'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
-]
+import type { OrderFilterDTO } from '../../types/order'
+import { ORDER_STATUS_LABELS } from '../../types/order'
+import { MONTH_NAMES } from '../../constants/monthNames'
 
 const fmt = (n: number) => n.toLocaleString('sr-RS')
+const fmtDate = (s: string) => new Date(s).toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
   if (!active || !payload?.length) return null
@@ -44,9 +50,41 @@ const DashboardPage = () => {
   const [dashboard, setDashboard] = useState<DashboardStatsDTO | null>(null)
   const [chartData, setChartData] = useState<DailyStatsDTO[]>([])
   const [chartLoading, setChartLoading] = useState(true)
+  const [latestOrders, setLatestOrders] = useState<OrderFilterDTO[]>([])
+
+  const role = useSelector((state: RootState) => state.auth.role)
+  const initializing = useSelector((state: RootState) => state.auth.initializing)
+  const isEmployee = !initializing && role === Role.Employee
+
+  const handleOrderCreated = useCallback((payload: OrderCreatedPayload) => {
+    const time = new Date(payload.createdAt).toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })
+    toast.info(
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-sm">Nova porudžbina primljena!</span>
+        <span className="text-xs text-neutral-500 font-mono">{payload.orderId.slice(0, 8)}...</span>
+        <span className="text-xs text-neutral-500">{payload.isPaid ? 'Plaćeno' : 'Nije plaćeno'} · {time}</span>
+      </div>,
+      { autoClose: 6000 }
+    )
+    statsService.getDashboard().then(setDashboard).catch(console.error)
+    const newOrder: OrderFilterDTO = {
+      orderId: payload.orderId,
+      userId: payload.userId,
+      username: null,
+      date: payload.createdAt,
+      couponCode: null,
+      addressId: payload.addressId,
+      status: payload.status as OrderFilterDTO['status'],
+      isPaid: payload.isPaid,
+    }
+    setLatestOrders(prev => [newOrder, ...prev].slice(0, 5))
+  }, [])
+
+  useOrdersHub(isEmployee, handleOrderCreated)
 
   useEffect(() => {
     statsService.getDashboard().then(setDashboard).catch(console.error)
+    orderService.getLatest().then(setLatestOrders).catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -98,6 +136,9 @@ const DashboardPage = () => {
     [chartData]
   )
 
+
+
+  // hendlovanje meseca
   const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth()
 
   const handlePrev = () => {
@@ -196,6 +237,51 @@ const DashboardPage = () => {
             </ComposedChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      {/* Latest Orders */}
+      <div className="bg-white border border-neutral-100 rounded-xl p-6">
+        <h2 className="text-sm font-semibold text-neutral-700 mb-4">Poslednje porudžbine</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-gray-400 border-b border-neutral-100">
+              <th className="pb-3 font-medium">ID</th>
+              <th className="pb-3 font-medium">Korisnik</th>
+              <th className="pb-3 font-medium">Datum</th>
+              <th className="pb-3 font-medium">Status</th>
+              <th className="pb-3 font-medium">Plaćeno</th>
+            </tr>
+          </thead>
+          <tbody>
+            {latestOrders.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-6 text-center text-gray-400 italic font-light">Nema porudžbina</td>
+              </tr>
+            ) : (
+              latestOrders.map(order => (
+                <tr key={order.orderId} className="border-b border-neutral-50 last:border-0">
+                  <td className="py-3.5 font-mono text-xs text-neutral-400">{order.orderId.slice(0, 8)}...</td>
+                  <td className="py-3.5 font-medium text-neutral-800">{order.username ?? 'Guest'}</td>
+                  <td className="py-3.5 text-neutral-500">{fmtDate(order.date)}</td>
+                  <td className="py-3.5">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${order.status === 2 ? 'bg-green-50 text-green-700' :
+                        order.status === 1 ? 'bg-blue-50 text-blue-700' :
+                        'bg-amber-50 text-amber-700'}`}>
+                      {ORDER_STATUS_LABELS[order.status]}
+                    </span>
+                  </td>
+                  <td className="py-3.5">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${order.isPaid ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                      {order.isPaid ? 'Da' : 'Ne'}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

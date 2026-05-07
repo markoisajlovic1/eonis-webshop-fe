@@ -147,6 +147,22 @@ class AuthService {
 
 
 
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      await axiosInstance.post(`${this.AUTH_ENDPOINT}/forgot-password`, { email });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async resetPassword(token: string, email: string, newPassword: string): Promise<void> {
+    try {
+      await axiosInstance.post(`${this.AUTH_ENDPOINT}/reset-password`, { token, email, newPassword });
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Error handling --------------------------------------
 
   private handleError(error: unknown): AuthError {
@@ -155,7 +171,7 @@ class AuthService {
       const statusCode = error.response?.status;
 
       if (statusCode === 401) {
-        return { message: 'Invalid credentials', statusCode };
+        return { message: message || 'Pogrešna email adresa ili lozinka.', statusCode };
       }
 
       if (statusCode === 404) {
