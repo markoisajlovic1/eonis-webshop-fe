@@ -1,65 +1,116 @@
-import { FiShoppingBag, FiDollarSign, FiAward } from 'react-icons/fi'
+import { useState, useEffect, useMemo } from 'react'
+import { FiShoppingBag, FiDollarSign, FiAward, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts'
+import { statsService } from '../../services/statsService'
+import type { DashboardStatsDTO, DailyStatsDTO } from '../../types/stats'
 
-const statsCards = [
-  {
-    label: 'Prodaje danas',
-    value: '24',
-    icon: <FiShoppingBag className="text-xl text-amber-500" />,
-    bg: 'bg-amber-50',
-  },
-  {
-    label: 'Prihod danas',
-    value: '142.800 RSD',
-    icon: <FiDollarSign className="text-xl text-green-500" />,
-    bg: 'bg-green-50',
-  },
-  {
-    label: 'Najprodavaniji',
-    value: 'Nike Air Max 90',
-    icon: <FiAward className="text-xl text-blue-500" />,
-    bg: 'bg-blue-50',
-  },
-  {
-    label: 'Prihod od pocetka meseca',
-    value: '2.356.000 RSD',
-    icon: <FiAward className="text-xl text-blue-500" />,
-    bg: 'bg-blue-50',
-  },
+const MONTH_NAMES = [
+  'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+  'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
 ]
 
-const revenueData = Array.from({ length: 30 }, (_, i) => {
-  const date = new Date()
-  date.setDate(date.getDate() - (29 - i))
-  return {
-    date: date.toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit' }),
-    prihod: Math.floor(Math.random() * 150000) + 30000,
-  }
-})
+const fmt = (n: number) => n.toLocaleString('sr-RS')
 
-const recentSales = [
-  { id: '#00124', customer: 'Ana Petrović', product: 'Nike Air Max 90', amount: '18.500 RSD', status: 'Isporučeno' },
-  { id: '#00123', customer: 'Milan Đorđević', product: 'Adidas Ultraboost 22', amount: '22.900 RSD', status: 'U toku' },
-  { id: '#00122', customer: 'Jelena Nikolić', product: 'Puma RS-X', amount: '12.400 RSD', status: 'Isporučeno' },
-  { id: '#00121', customer: 'Stefan Marković', product: 'New Balance 574', amount: '15.200 RSD', status: 'Otkazano' },
-  { id: '#00120', customer: 'Ivana Jovanović', product: 'Reebok Classic', amount: '9.800 RSD', status: 'Isporučeno' },
-]
-
-const statusStyle: Record<string, string> = {
-  'Isporučeno': 'bg-green-100 text-green-700',
-  'U toku': 'bg-amber-100 text-amber-700',
-  'Otkazano': 'bg-red-100 text-red-600',
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white border border-neutral-200 rounded-xl shadow-lg p-3 text-xs flex flex-col gap-1.5 min-w-40">
+      <p className="font-semibold text-neutral-700 mb-0.5">{label}. u mesecu</p>
+      {payload.map(p => (
+        <div key={p.name} className="flex items-center justify-between gap-4">
+          <span style={{ color: p.color }}>{p.name}</span>
+          <span className="font-medium text-neutral-800">
+            {p.name === 'Prihod' ? `${fmt(p.value)} RSD` : p.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 const DashboardPage = () => {
+  const now = new Date()
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth())
+  const [dashboard, setDashboard] = useState<DashboardStatsDTO | null>(null)
+  const [chartData, setChartData] = useState<DailyStatsDTO[]>([])
+  const [chartLoading, setChartLoading] = useState(true)
+
+  useEffect(() => {
+    statsService.getDashboard().then(setDashboard).catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setChartLoading(true)
+    const from = new Date(selectedYear, selectedMonth, 1)
+    const to = new Date(selectedYear, selectedMonth + 1, 0)
+    statsService.getDateRange(from, to)
+      .then(data => { if (!cancelled) setChartData(data) })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setChartLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedYear, selectedMonth])
+
+  const statsCards = useMemo(() => [
+    {
+      label: 'Prodaje danas',
+      value: dashboard ? String(dashboard.todaySales.total) : '—',
+      icon: <FiShoppingBag className="text-xl text-amber-500" />,
+      bg: 'bg-amber-50',
+    },
+    {
+      label: 'Prihod danas',
+      value: dashboard ? `${fmt(dashboard.todayRevenue)} RSD` : '—',
+      icon: <FiDollarSign className="text-xl text-green-500" />,
+      bg: 'bg-green-50',
+    },
+    {
+      label: 'Najprodavaniji',
+      value: dashboard?.bestSellingProduct?.productName ?? '—',
+      icon: <FiAward className="text-xl text-blue-500" />,
+      bg: 'bg-blue-50',
+    },
+    {
+      label: 'Prihod od početka meseca',
+      value: dashboard ? `${fmt(dashboard.monthRevenue)} RSD` : '—',
+      icon: <FiAward className="text-xl text-purple-500" />,
+      bg: 'bg-purple-50',
+    },
+  ], [dashboard])
+
+  const displayData = useMemo(() =>
+    chartData.map(d => ({
+      day: String(new Date(d.date).getDate()),
+      prihod: d.profit,
+      paidOrders: d.paidOrders,
+      unpaidOrders: d.unpaidOrders,
+    })),
+    [chartData]
+  )
+
+  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth()
+
+  const handlePrev = () => {
+    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(y => y - 1) }
+    else setSelectedMonth(m => m - 1)
+  }
+
+  const handleNext = () => {
+    if (isCurrentMonth) return
+    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(y => y + 1) }
+    else setSelectedMonth(m => m + 1)
+  }
+
   return (
     <div className="p-8 flex flex-col gap-8">
       <div>
@@ -84,73 +135,67 @@ const DashboardPage = () => {
 
       {/* Chart */}
       <div className="bg-white border border-neutral-100 rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-neutral-700 mb-6">Prihod — poslednjih 30 dana</h2>
-        <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={revenueData} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorPrihod" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              tickLine={false}
-              axisLine={false}
-              interval={4}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: '#9ca3af' }}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-            />
-            <Tooltip
-              formatter={(value) => [`${Number(value).toLocaleString('sr-RS')} RSD`, 'Prihod']}
-              contentStyle={{ borderRadius: 8, border: '1px solid #f3f4f6', fontSize: 12 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="prihod"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              fill="url(#colorPrihod)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-semibold text-neutral-700">Prihod i porudžbine po danu</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrev}
+              className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors cursor-pointer"
+            >
+              <FiChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-medium text-neutral-700 min-w-27.5 text-center">
+              {MONTH_NAMES[selectedMonth]} {selectedYear}
+            </span>
+            <button
+              onClick={handleNext}
+              disabled={isCurrentMonth}
+              className="p-1.5 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <FiChevronRight size={16} />
+            </button>
+          </div>
+        </div>
 
-      {/* Recent Sales */}
-      <div className="bg-white border border-neutral-100 rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-neutral-700 mb-4">Poslednje prodaje</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs text-gray-400 border-b border-neutral-100">
-              <th className="pb-3 font-medium">Narudžbina</th>
-              <th className="pb-3 font-medium">Kupac</th>
-              <th className="pb-3 font-medium">Proizvod</th>
-              <th className="pb-3 font-medium">Iznos</th>
-              <th className="pb-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentSales.map((sale) => (
-              <tr key={sale.id} className="border-b border-neutral-50 last:border-0">
-                <td className="py-3.5 text-gray-500 font-mono">{sale.id}</td>
-                <td className="py-3.5 font-medium text-neutral-800">{sale.customer}</td>
-                <td className="py-3.5 text-gray-500">{sale.product}</td>
-                <td className="py-3.5 font-semibold text-neutral-800">{sale.amount}</td>
-                <td className="py-3.5">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyle[sale.status]}`}>
-                    {sale.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {chartLoading ? (
+          <div className="h-75 flex items-center justify-center text-sm text-gray-400">Učitavanje...</div>
+        ) : displayData.length === 0 ? (
+          <div className="h-75 flex items-center justify-center text-sm text-gray-400">Nema podataka za ovaj mesec</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={displayData} margin={{ top: 0, right: 0, left: 10, bottom: 0 }} barGap={6}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={false}
+                interval={displayData.length > 28 ? 2 : 1}
+              />
+              <YAxis
+                yAxisId="revenue"
+                orientation="left"
+                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              />
+              <YAxis
+                yAxisId="orders"
+                orientation="right"
+                tick={{ fontSize: 11, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
+              <Bar yAxisId="revenue" dataKey="prihod" name="Prihod" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={14} />
+              <Bar yAxisId="orders" dataKey="paidOrders" name="Plaćene" stackId="orders" fill="#22c55e" radius={[0, 0, 0, 0]} maxBarSize={14} />
+              <Bar yAxisId="orders" dataKey="unpaidOrders" name="Neplaćene" stackId="orders" fill="#fca5a5" radius={[4, 4, 0, 0]} maxBarSize={14} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   )
