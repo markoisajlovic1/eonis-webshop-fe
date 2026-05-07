@@ -29,7 +29,7 @@ export const router = createBrowserRouter([
         children: [
             { index: true, element: <HomePage /> },
             { path: 'auth', element: <AuthPage /> },
-            { path: 'catalog/:subcategorySlug', element: <CatalogPage /> },
+            { path: 'catalog', element: <CatalogPage /> },
             { path: 'proizvodi/:productSlug', element: <ProductPage /> },
             {
                 path: 'profile',

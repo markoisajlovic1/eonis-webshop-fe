@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ProductVerticalCard from '../../components/shared/ProductVerticalCard';
 import ProductSelectFilters from '../../components/user/ProductSelectFilters';
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { useAllSubcategories } from '../../hooks/useAllSubcategories';
+import { useCatalogFilters } from '../../hooks/useCatalogFilters';
 import { useCategories } from '../../hooks/useCategories';
 import { useSubcategories } from '../../hooks/useSubcategories';
 import { useBrands } from '../../hooks/useBrands';
 import { productService } from '../../services/productService';
 import { toSlug } from '../../utils/slug';
 import type { ProductDTO, ProductSort } from '../../types/product';
+import type { CategoryDTO } from '../../types/categories';
 
 const PAGE_SIZE = 12
 
@@ -21,69 +21,88 @@ const SORT_OPTIONS: { label: string; value: ProductSort }[] = [
 ]
 
 const CatalogPage: React.FC = () => {
-  const { subcategorySlug } = useParams<{ subcategorySlug: string }>();
-  const { data: allSubcategories = [] } = useAllSubcategories();
-  const { data: categories = [] } = useCategories();
-  const { data: brands = [] } = useBrands();
+  const { filters, setCategory, setSubcategories, setBrands, setSort, setPage, resetAll } = useCatalogFilters()
 
-  const subcategory = allSubcategories.find(s => toSlug(s.name) === subcategorySlug);
+  const { data: categories = [] } = useCategories()
+  const { data: brands = [] } = useBrands()
 
-  const [products, setProducts] = useState<ProductDTO[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [sort, setSort] = useState<ProductSort>('NameAsc');
-  const [page, setPage] = useState(1);
+  // Resolve selected category object from slug
+  const selectedCategory: CategoryDTO | null = useMemo(
+    () => categories.find(c => toSlug(c.name) === filters.category) ?? null,
+    [categories, filters.category]
+  )
 
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  // Fetch subcategories only when a category is selected
+  const { data: subcategories = [], isFetching: subcategoriesLoading } = useSubcategories(
+    selectedCategory?.categoryId ?? null
+  )
 
-  // subcategories filtered by selected categories (or all if none selected)
-  const activeCategoryId = selectedCategories.length === 1 ? selectedCategories[0] : null;
-  const { data: filteredSubcategories = [] } = useSubcategories(activeCategoryId);
-  const subcategoryOptions = activeCategoryId
-    ? filteredSubcategories.map(s => ({ id: s.subcategoryId, label: s.name }))
-    : allSubcategories.map(s => ({ id: s.subcategoryId, label: s.name }));
+  // Drop any subcategory slugs that don't belong to current category
+  const validSubcategories = useMemo(() => {
+    if (!selectedCategory) return []
+    const validSlugs = new Set(subcategories.map(s => toSlug(s.name)))
+    return filters.subcategories.filter(s => validSlugs.has(s))
+  }, [subcategories, filters.subcategories, selectedCategory])
+
+  const [products, setProducts] = useState<ProductDTO[]>([])
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    const subcategoryIds = selectedSubcategories.length > 0
-      ? selectedSubcategories
-      : subcategory?.subcategoryId ? [subcategory.subcategoryId] : undefined;
+    setLoading(true)
     productService.publicFilter({
-      subcategoryId: subcategoryIds,
-      categoryId: selectedCategories.length > 0 ? selectedCategories : undefined,
-      brandId: selectedBrands.length > 0 ? selectedBrands : undefined,
-      sort,
-      pageNumber: page,
+      category: filters.category ?? undefined,
+      subcategory: validSubcategories.length > 0 ? validSubcategories : undefined,
+      brand: filters.brands.length > 0 ? filters.brands : undefined,
+      priceMin: filters.priceMin ?? undefined,
+      priceMax: filters.priceMax ?? undefined,
+      sort: filters.sort,
+      pageNumber: filters.page,
       pageSize: PAGE_SIZE,
     })
       .then(result => {
-        if (cancelled) return;
-        setProducts(result.items);
-        setTotalCount(result.totalCount);
-        setTotalPages(result.totalPages);
+        if (cancelled) return
+        setProducts(result.items)
+        setTotalCount(result.totalCount)
+        setTotalPages(result.totalPages)
       })
-      .catch(err => { if (!cancelled) console.error(err); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [page, sort, selectedBrands, selectedCategories, selectedSubcategories, subcategory?.subcategoryId]);
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [filters.category, filters.brands, filters.sort, filters.page, filters.priceMin, filters.priceMax, validSubcategories])
+
+  const categoryOptions = useMemo(
+    () => categories.map(c => ({ id: toSlug(c.name), label: c.name })),
+    [categories]
+  )
+
+  const subcategoryOptions = useMemo(
+    () => subcategories.map(s => ({ id: toSlug(s.name), label: s.name })),
+    [subcategories]
+  )
+
+  const brandOptions = useMemo(
+    () => brands.map(b => ({ id: toSlug(b.brandName), label: b.brandName })),
+    [brands]
+  )
+
+  const hasActiveFilters = !!(filters.category || filters.brands.length || filters.subcategories.length || filters.priceMin || filters.priceMax)
+
+  const pageTitle = selectedCategory?.name ?? 'Svi proizvodi'
 
   return (
     <div className="bg-neutral-100 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-4">
           <p className="text-xs text-neutral-500 mb-2 uppercase tracking-widest">
-            Početna / {subcategory?.name ?? subcategorySlug}
+            Početna / {pageTitle}
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-end gap-2">
-              <h1 className="text-3xl font-semibold text-black capitalize">
-                {subcategory?.name ?? subcategorySlug}
-              </h1>
+              <h1 className="text-3xl font-semibold text-black capitalize">{pageTitle}</h1>
               <p className="text-xs text-neutral-500 uppercase tracking-widest">{totalCount} proizvoda</p>
             </div>
 
@@ -91,8 +110,8 @@ const CatalogPage: React.FC = () => {
               <span className="text-sm text-neutral-500 whitespace-nowrap">Sortiraj po:</span>
               <select
                 className="bg-gray-200 border border-neutral-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-black cursor-pointer"
-                value={sort}
-                onChange={e => { setSort(e.target.value as ProductSort); }}
+                value={filters.sort}
+                onChange={e => setSort(e.target.value as ProductSort)}
               >
                 {SORT_OPTIONS.map(o => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -105,27 +124,41 @@ const CatalogPage: React.FC = () => {
         <hr className="border-gray-400 mb-8" />
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filter - brend kat subkat cena */}
+          {/* Sidebar Filters */}
           <aside className="lg:w-1/4 flex flex-col gap-4">
-            <ProductSelectFilters
-              title="Brendovi"
-              options={brands.map(b => ({ id: b.brandId, label: b.brandName }))}
-              selected={selectedBrands}
-              onChange={v => { setSelectedBrands(v); setPage(1); }}
-            />
+            {hasActiveFilters && (
+              <button
+                onClick={resetAll}
+                className="text-xs font-semibold text-neutral-500 hover:text-black transition-colors self-end underline underline-offset-2"
+              >
+                Resetuj filtere
+              </button>
+            )}
 
             <ProductSelectFilters
               title="Kategorije"
-              options={categories.map(c => ({ id: c.categoryId, label: c.name }))}
-              selected={selectedCategories}
-              onChange={v => { setSelectedCategories(v); setSelectedSubcategories([]); setPage(1); }}
+              mode="single"
+              options={categoryOptions}
+              selected={filters.category}
+              onChange={slug => setCategory(slug)}
             />
 
             <ProductSelectFilters
               title="Potkategorije"
+              mode="multi"
               options={subcategoryOptions}
-              selected={selectedSubcategories}
-              onChange={setSelectedSubcategories}
+              selected={validSubcategories}
+              onChange={setSubcategories}
+              disabled={!filters.category}
+              isLoading={subcategoriesLoading}
+            />
+
+            <ProductSelectFilters
+              title="Brendovi"
+              mode="multi"
+              options={brandOptions}
+              selected={filters.brands}
+              onChange={setBrands}
             />
 
             {/* Price Filter */}
@@ -191,8 +224,8 @@ const CatalogPage: React.FC = () => {
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-1 mt-8">
                 <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  onClick={() => setPage(Math.max(1, filters.page - 1))}
+                  disabled={filters.page === 1}
                   className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <FiChevronLeft size={16} />
@@ -203,15 +236,15 @@ const CatalogPage: React.FC = () => {
                     key={p}
                     onClick={() => setPage(p)}
                     className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors cursor-pointer
-                      ${p === page ? 'bg-black text-white' : 'text-neutral-600 hover:bg-neutral-200'}`}
+                      ${p === filters.page ? 'bg-black text-white' : 'text-neutral-600 hover:bg-neutral-200'}`}
                   >
                     {p}
                   </button>
                 ))}
 
                 <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
+                  onClick={() => setPage(Math.min(totalPages, filters.page + 1))}
+                  disabled={filters.page === totalPages}
                   className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   <FiChevronRight size={16} />

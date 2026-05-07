@@ -87,7 +87,9 @@ const Header: React.FC = () => {
               <div className="w-64 bg-white rounded-xl shadow-2xl border border-neutral-100 overflow-hidden">
                 <div className="py-2 flex flex-col">
                   {categories.map((cat) => (
-                    <button
+                    <Link
+                      to={`/catalog?category=${toSlug(cat.name)}`}
+                      onClick={() => setIsMenuOpen(false)}
                       key={cat.categoryId}
                       onMouseEnter={() => setHoveredCategoryId(cat.categoryId)}
                       className={`px-4 py-3 text-sm text-left text-neutral-700 hover:bg-neutral-50 hover:text-black transition-all border-l-4 font-medium flex items-center justify-between cursor-pointer
@@ -95,7 +97,7 @@ const Header: React.FC = () => {
                     >
                       {cat.name}
                       <FiChevronRight className="text-neutral-400 shrink-0" />
-                    </button>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -103,16 +105,19 @@ const Header: React.FC = () => {
               {hoveredCategoryId && subcategories.length > 0 && (
                 <div className="w-64 bg-white rounded-xl shadow-2xl border border-neutral-100 overflow-hidden ml-1">
                   <div className="py-2 flex flex-col">
-                    {subcategories.map((sub) => (
-                      <Link
-                        key={sub.subcategoryId}
-                        to={`/catalog/${toSlug(sub.name)}`}
-                        onClick={() => { setIsMenuOpen(false); setHoveredCategoryId(null); }}
-                        className="px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-black hover:pl-6 transition-all border-l-4 border-transparent hover:border-yellow-500 font-medium"
-                      >
-                        {sub.name}
-                      </Link>
-                    ))}
+                    {(() => {
+                      const catSlug = toSlug(categories.find(c => c.categoryId === hoveredCategoryId)?.name ?? '')
+                      return subcategories.map((sub) => (
+                        <Link
+                          key={sub.subcategoryId}
+                          to={`/catalog?category=${catSlug}&subcategory=${toSlug(sub.name)}`}
+                          onClick={() => { setIsMenuOpen(false); setHoveredCategoryId(null); }}
+                          className="px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-black hover:pl-6 transition-all border-l-4 border-transparent hover:border-yellow-500 font-medium"
+                        >
+                          {sub.name}
+                        </Link>
+                      ))
+                    })()}
                   </div>
                 </div>
               )}

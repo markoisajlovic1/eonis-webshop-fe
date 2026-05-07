@@ -56,9 +56,11 @@ export type ProductSort = 'NameAsc' | 'NameDesc' | 'PriceAsc' | 'PriceDesc'
 
 export interface PublicProductFilterParams {
   term?: string
-  categoryId?: string[]
-  subcategoryId?: string[]
-  brandId?: string[]
+  category?: string
+  subcategory?: string[]
+  brand?: string[]
+  priceMin?: number
+  priceMax?: number
   sort?: ProductSort
   pageNumber?: number
   pageSize?: number
