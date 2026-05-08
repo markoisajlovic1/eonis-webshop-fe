@@ -23,6 +23,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
 
   useEffect(() => {
     reviewService.getAverages(productId).then(setAverages).catch(console.error);
+    console.log(averages)
   }, [productId]);
 
   if (!averages) return null;
@@ -33,11 +34,16 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
     { label: 'Dizajn', score: averages.designGrade, counts: averages.designCounts },
   ];
 
-  const totalVotes = Object.values(averages.qualityCounts).reduce((sum, v) => sum + v, 0);
+  const allCounts = [averages.performanceCounts, averages.qualityCounts, averages.designCounts];
+
+  const totalVotes = allCounts.reduce(
+    (sum, counts) => sum + Object.values(counts).reduce((s, v) => s + v, 0),
+    0
+  );
 
   const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => ({
     stars,
-    count: averages.qualityCounts[String(stars)] ?? 0,
+    count: allCounts.reduce((sum, counts) => sum + (counts[String(stars)] ?? 0), 0),
   }));
 
   return (
@@ -50,7 +56,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
             {averages.totalGrade.toFixed(1)}
           </span>
           <Stars value={averages.totalGrade} />
-          <span className="text-xs text-neutral-400 mt-1">{totalVotes} ocena</span>
+          <span className="text-xs text-neutral-400 mt-1">{Math.round(totalVotes / 3)} ocena</span>
         </div>
 
         <div className="flex flex-col gap-2 flex-1">

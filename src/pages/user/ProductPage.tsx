@@ -49,9 +49,9 @@ const ProductPage = () => {
       </nav>
 
       <div className="flex gap-8 items-start">
-        <div className="flex flex-col gap-6 flex-1 min-w-0">
+        <div className="flex flex-col gap-10 flex-1 min-w-0 mb-40">
           <ProductGallery images={product.images.slice().sort((a, b) => a.position - b.position).map(img => img.imageLink)} />
-          <ProductDetails desc={product.desc} />
+          <ProductDetails product={product} />
           <ProductReviews productId={product.productId} />
           <ProductComments productId={product.productId} />
         </div>

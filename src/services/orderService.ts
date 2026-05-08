@@ -1,6 +1,6 @@
 import axiosInstance from './api/axiosInstance';
 import { AxiosError } from 'axios';
-import type { OrderDTO, OrderFilterDTO, OrderItemWithProductDTO, CreateOrderDTO, UpdateOrderDTO, OrderFilterParams, OrderFilterResult, OrderError } from '../types/order';
+import type { OrderDTO, OrderFilterDTO, OrderAdminDetailDTO, OrderItemWithProductDTO, CreateOrderDTO, UpdateOrderDTO, OrderFilterParams, OrderFilterResult, OrderError } from '../types/order';
 
 class OrderService {
   private readonly ENDPOINT = '/api/Order';
@@ -26,6 +26,15 @@ class OrderService {
   async getById(id: string): Promise<OrderFilterDTO> {
     try {
       const { data } = await axiosInstance.get<OrderFilterDTO>(`${this.ENDPOINT}/${id}`);
+      return data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getByIdForAdmin(id: string): Promise<OrderAdminDetailDTO> {
+    try {
+      const { data } = await axiosInstance.get<OrderAdminDetailDTO>(`${this.ENDPOINT}/admin/${id}`);
       return data;
     } catch (error) {
       throw this.handleError(error);

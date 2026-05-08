@@ -3,7 +3,7 @@ import { FiX } from 'react-icons/fi'
 import { orderService } from '../services/orderService'
 import { toast } from 'react-toastify'
 import { ORDER_STATUS_LABELS } from '../types/order'
-import type { OrderFilterDTO, OrderItemWithProductDTO, OrderStatus } from '../types/order'
+import type { OrderAdminDetailDTO, OrderItemWithProductDTO, OrderStatus } from '../types/order'
 
 interface OrderDetailsDialogProps {
   orderId: string,
@@ -16,7 +16,7 @@ const fmt = (n: number) => n.toLocaleString('sr-RS')
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
 const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ orderId, username, onClose, onUpdated }) => {
-  const [order, setOrder] = useState<OrderFilterDTO | null>(null)
+  const [order, setOrder] = useState<OrderAdminDetailDTO | null>(null)
   const [items, setItems] = useState<OrderItemWithProductDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [isPaid, setIsPaid] = useState(false)
@@ -25,7 +25,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ orderId, userna
 
   useEffect(() => {
     Promise.all([
-      orderService.getById(orderId),
+      orderService.getByIdForAdmin(orderId),
       orderService.getItemsByOrderId(orderId),
     ])
       .then(([o, i]) => {
@@ -47,7 +47,7 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ orderId, userna
       await orderService.update(orderId, {
         date: order.date,
         couponCode: order.couponCode ?? undefined,
-        addressId: order.addressId,
+        addressId: order.address.addressId,
         status,
         isPaid,
       })
@@ -97,6 +97,18 @@ const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({ orderId, userna
                   <span className="font-mono text-neutral-700">{order.couponCode}</span>
                 </div>
               )}
+            </div>
+
+            <hr className="border-neutral-100" />
+
+            {/* Address */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] uppercase text-neutral-400 font-medium">Adresa dostave</span>
+              <div className="flex flex-col gap-x-6 gap-y-1 text-sm text-neutral-700">
+                <span><span className='text-gray-500 mr-4'>Adresa dostave: </span>{order.address.streetName} {order.address.streetNumber}{order.address.floor ? `, sprat ${order.address.floor}` : ''}{order.address.doorNumber ? `, stan ${order.address.doorNumber}` : ''}</span>
+                <span><span className='text-gray-500 mr-4'>Drzava i grad dostave (postanski broj): </span>{order.address.country}, {order.address.city} ({order.address.postalCode})</span>
+                
+              </div>
             </div>
 
             <hr className="border-neutral-100" />

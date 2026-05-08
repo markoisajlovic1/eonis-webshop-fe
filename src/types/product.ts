@@ -19,6 +19,7 @@ export interface ProductDTO {
   discount: number
   quantity: number
   brandId: string
+  brandName: string
   desc: string
   subcategory: ProductCategoryInfoDTO
   isPublished: boolean

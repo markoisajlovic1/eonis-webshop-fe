@@ -1,3 +1,5 @@
+import type { AddressDTO } from './address'
+
 export type OrderSort = 'DateAsc' | 'DateDesc'
 
 export type OrderStatus = 0 | 1 | 2
@@ -69,6 +71,16 @@ export interface OrderItemWithProductDTO {
     images: { imageLink: string }[]
   }
   quantity: number
+}
+
+export interface OrderAdminDetailDTO {
+  orderId: string
+  userId: string | null
+  date: string
+  couponCode: string | null
+  address: AddressDTO
+  status: OrderStatus
+  isPaid: boolean
 }
 
 export interface OrderError {
