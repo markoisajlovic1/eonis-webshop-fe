@@ -110,6 +110,15 @@ class ProductService {
     }
   }
 
+  async togglePublished(id: string): Promise<ProductDTO> {
+    try {
+      const { data } = await axiosInstance.patch<ProductDTO>(`${this.ENDPOINT}/${id}/toggle-published`)
+      return data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
   async delete(id: string): Promise<void> {
     try {
       await axiosInstance.delete(`${this.ENDPOINT}/${id}`)

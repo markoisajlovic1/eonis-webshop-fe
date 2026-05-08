@@ -11,6 +11,10 @@ import type { SelectDialogItem } from "../../dialogs/SelectDialog"
 import ProductImageDialog from "../../dialogs/ProductImageDialog"
 import { IoIosRemoveCircle } from "react-icons/io"
 import { productService } from "../../services/productService"
+import { BsCollection } from "react-icons/bs";
+import { MdOutlinePublic } from "react-icons/md";
+
+
 
 const MAX_IMAGES = 5
 type DialogType = 'brand' | 'category' | 'subcategory' | null
@@ -22,6 +26,8 @@ const AdminProductPage = () => {
 
   const [openDialog, setOpenDialog] = useState<DialogType>(null)
   const [publishing, setPublishing] = useState(false)
+  const [toggling, setToggling] = useState(false)
+  const [isPublished, setIsPublished] = useState(false)
   const [loadingProduct, setLoadingProduct] = useState(isEdit)
 
   const [images, setImages] = useState<(string | null)[]>(Array(MAX_IMAGES).fill(null))
@@ -69,6 +75,7 @@ const AdminProductPage = () => {
         setDiscountEnabled(product.discount > 0)
         setDesc(product.desc)
         setQuantity(String(product.quantity))
+        setIsPublished(product.isPublished)
         setSelectedBrandId(product.brandId)
 
         const imgs: (string | null)[] = Array(MAX_IMAGES).fill(null)
@@ -129,6 +136,19 @@ const AdminProductPage = () => {
     setSelectedSubcategoryId(null)
   }
 
+  const handleTogglePublished = async () => {
+    if (!id) return
+    setToggling(true)
+    try {
+      const updated = await productService.togglePublished(id)
+      setIsPublished(updated.isPublished)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setToggling(false)
+    }
+  }
+
   const handlePublish = async () => {
     if (!productName.trim() || !price || !selectedBrandId || !selectedSubcategoryId) return
     setPublishing(true)
@@ -176,18 +196,33 @@ const AdminProductPage = () => {
             <h2 className="text-xl">{isEdit ? 'Izmeni proizvod' : 'Novi proizvod'}</h2>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           <button className="border-red-500 bg-red-200 p-2 text-red-500 rounded-md cursor-pointer mr-4">
             <IoTrashBinOutline />
           </button>
-          <button className="border py-1 px-3 rounded-md border-gray-400 cursor-pointer">Draft</button>
-          <button
-            onClick={handlePublish}
-            disabled={publishing}
-            className="bg-blue-500 disabled:opacity-50 text-white rounded-md py-1 px-3 cursor-pointer"
-          >
-            {publishing ? 'Čuvanje...' : 'Postavi'}
-          </button>
+          {isEdit && (
+            <button
+              onClick={handleTogglePublished}
+              disabled={toggling}
+              className={` py-2 px-2 rounded-md cursor-pointer disabled:opacity-50 transition-colors ${
+                isPublished
+                  ? ' bg-yellow-500 text-yellow-700 hover:bg-yellow-100'
+                  : 'bg-green-300 text-gray-600 hover:bg-neutral-100'
+              }`}
+            >
+              {toggling ? '...' : isPublished ? <BsCollection /> : <MdOutlinePublic />}
+            </button>
+          )}
+          {
+            !isEdit && (<button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="bg-blue-500 disabled:opacity-50 text-white rounded-md py-1 px-3 cursor-pointer"
+            >
+              {publishing ? 'Čuvanje...' : 'Postavi'}
+            </button>)
+          }
+          
         </div>
       </div>
 
