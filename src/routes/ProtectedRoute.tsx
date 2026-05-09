@@ -19,4 +19,14 @@ const ProtectedRoute = ({ requiredRole }: ProtectedRouteProps) => {
   return <Outlet />;
 };
 
+export const GuestRoute = () => {
+  const { initializing, isAuthenticated } = useSelector((state: RootState) => state.auth);
+
+  if (initializing) return null;
+
+  if (isAuthenticated) return <Navigate to="/" replace />;
+
+  return <Outlet />;
+};
+
 export default ProtectedRoute;

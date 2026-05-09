@@ -23,6 +23,7 @@ interface CartRow {
   category: string
   price: number
   quantity: number
+  stock: number
   image: string
 }
 
@@ -51,6 +52,7 @@ const CartPage = () => {
                 category: p.subcategory.subcategoryName,
                 price: p.price,
                 quantity: ci.quantity,
+                stock: p.quantity,
                 image: p.images[0]?.imageLink ?? '',
               }))
             )
@@ -78,6 +80,7 @@ const CartPage = () => {
           category: '',
           price: i.price,
           quantity: i.quantity,
+          stock: Infinity,
           image: i.image,
         })))
         setLoading(false)
@@ -159,8 +162,9 @@ const CartPage = () => {
   const quantityDebounceRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const updateQuantity = (productId: string, newQty: number) => {
-    // ne moze da se setuje na manje od 1
     if (newQty < 1) return
+    const item = items.find(i => i.productId === productId)
+    if (item && newQty > item.stock) return
     setItems(prev => prev.map(i => i.productId === productId ? { ...i, quantity: newQty } : i))
 
     if (quantityDebounceRef.current[productId]) {
@@ -263,7 +267,8 @@ const CartPage = () => {
                           />
                           <button
                             onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                            className='w-7 h-7 rounded-md bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-bold text-base flex items-center justify-center cursor-pointer transition-colors'
+                            disabled={item.quantity >= item.stock}
+                            className='w-7 h-7 rounded-md bg-neutral-100 hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-700 font-bold text-base flex items-center justify-center cursor-pointer transition-colors'
                           >+</button>
                         </div>
                       </td>

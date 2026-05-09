@@ -6,7 +6,7 @@ import CatalogPage from '../pages/user/CatalogPage';
 import ProfilePage from '../pages/user/ProfilePage';
 import EditProfilePage from '../pages/user/EditProfilePage';
 import OrdersPage from '../pages/user/OrdersPage';
-import ProtectedRoute from './ProtectedRoute';
+import ProtectedRoute, { GuestRoute } from './ProtectedRoute';
 import { Role } from '../types/auth';
 import AdminLayout from '../layouts/AdminLayout';
 import DashboardPage from '../pages/admin/DashboardPage';
@@ -29,7 +29,11 @@ export const router = createBrowserRouter([
         element: <App />,
         children: [
             { index: true, element: <HomePage /> },
-            { path: 'auth', element: <AuthPage /> },
+            {
+                path: 'auth',
+                element: <GuestRoute />,
+                children: [{ index: true, element: <AuthPage /> }],
+            },
             { path: 'reset-password', element: <ResetPasswordPage /> },
             { path: 'catalog', element: <CatalogPage /> },
             { path: 'proizvodi/:productSlug', element: <ProductPage /> },
