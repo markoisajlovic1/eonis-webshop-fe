@@ -42,12 +42,14 @@ const HomePage = () => {
                 <div className="flex-1 min-w-0">
                     <BannerSlider />
                 </div>
-                <div className="md:w-1/3 lg:w-1/4 h-[200px] md:h-[400px]">
+                <div className="md:w-1/3 lg:w-1/4 h-[200px] md:h-[400px] bg-yellow-400 rounded-xl relative overflow-hidden">
+                    <div className='absolute rounded-full bg-black md:h-[400px] w-full z-0 bottom-70'></div>
                     <img
                         src={promoImage}
                         alt="Promo"
-                        className="w-full h-full object-cover rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                        className="w-full h-full object-contain rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer z-10"
                     />
+                    <div className='absolute rounded-full bg-black md:h-[400px] w-full z-0 top-80'></div>
                 </div>
             </div>
 

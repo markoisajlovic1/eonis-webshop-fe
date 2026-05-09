@@ -2,12 +2,17 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { FiLogOut } from 'react-icons/fi'
 import { authService } from '../../services/authService'
 import { ADMIN_SIDEBAR_ITEMS } from '../../constants/adminSidebarItems'
+import { useDispatch } from 'react-redux'
+import { logoutSuccess } from '../../store/slices/authSlice'
 
 const AdminSidebar = () => {
   const navigate = useNavigate()
+  const dispatch = useDispatch();
 
   const handleLogout = () => {
     authService.logout()
+    //brisanje iz reduxa
+    dispatch(logoutSuccess())
     navigate('/auth')
   }
 

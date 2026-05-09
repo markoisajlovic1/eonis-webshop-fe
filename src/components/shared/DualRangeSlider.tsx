@@ -5,11 +5,12 @@ interface DualRangeSliderProps {
   max: number
   value: [number, number]
   onChange: (value: [number, number]) => void
+  onCommit?: (value: [number, number]) => void
   step?: number
 }
 
 const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
-  min, max, value, onChange, step = 1
+  min, max, value, onChange, onCommit, step = 1
 }) => {
   const [low, high] = value
   const range = max - min
@@ -24,6 +25,10 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
   const handleHigh = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Math.max(Number(e.target.value), low + step)
     onChange([low, val])
+  }
+
+  const handleRelease = () => {
+    onCommit?.(value)
   }
 
   const thumbClass = `
@@ -44,8 +49,20 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({
         className="absolute h-1 bg-black rounded-full"
         style={{ left: `${lowPct}%`, right: `${100 - highPct}%` }}
       />
-      <input type="range" min={min} max={max} step={step} value={low} onChange={handleLow} className={thumbClass} />
-      <input type="range" min={min} max={max} step={step} value={high} onChange={handleHigh} className={thumbClass} />
+      <input
+        type="range" min={min} max={max} step={step} value={low}
+        onChange={handleLow}
+        onMouseUp={handleRelease}
+        onTouchEnd={handleRelease}
+        className={thumbClass}
+      />
+      <input
+        type="range" min={min} max={max} step={step} value={high}
+        onChange={handleHigh}
+        onMouseUp={handleRelease}
+        onTouchEnd={handleRelease}
+        className={thumbClass}
+      />
     </div>
   )
 }

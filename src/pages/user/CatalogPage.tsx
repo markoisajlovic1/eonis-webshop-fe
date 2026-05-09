@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ProductVerticalCard from '../../components/shared/ProductVerticalCard';
 import ProductSelectFilters from '../../components/user/ProductSelectFilters';
@@ -27,18 +27,15 @@ const CatalogPage: React.FC = () => {
   const { data: categories = [] } = useCategories()
   const { data: brands = [] } = useBrands()
 
-  // Resolve selected category object from slug
   const selectedCategory: CategoryDTO | null = useMemo(
     () => categories.find(c => toSlug(c.name) === filters.category) ?? null,
     [categories, filters.category]
   )
 
-  // Fetch subcategories only when a category is selected
   const { data: subcategories = [], isFetching: subcategoriesLoading } = useSubcategories(
     selectedCategory?.categoryId ?? null
   )
 
-  // Drop any subcategory slugs that don't belong to current category
   const validSubcategories = useMemo(() => {
     if (!selectedCategory) return []
     const validSlugs = new Set(subcategories.map(s => toSlug(s.name)))
@@ -49,25 +46,51 @@ const CatalogPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [priceAbsolute, setPriceAbsolute] = useState<{ min: number; max: number } | null>(null)
-  const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
 
-  // Stable string deps to avoid infinite loop from array identity changes
+  // priceAbsolute = the full min/max bounds of the slider (set only when category/brand/subcat change)
+  const [priceAbsolute, setPriceAbsolute] = useState<{ min: number; max: number } | null>(null)
+  // priceRange = what the slider UI currently shows (thumb positions)
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
+  // appliedPriceRange = committed value sent to the API
+  const [appliedPriceRange, setAppliedPriceRange] = useState<[number, number] | null>(null)
+
   const brandsKey = filters.brands.join(',')
   const subcatsKey = validSubcategories.join(',')
 
+  // Track the "structural" filter key (category/brand/subcat) separately from price/sort/page.
+  // When structural filters change → reset price bounds AND applied price.
+  const prevStructuralKey = useRef<string>('')
+
   useEffect(() => {
+    const structuralKey = `${filters.category}|${brandsKey}|${subcatsKey}`
+    const structuralChanged = structuralKey !== prevStructuralKey.current
+    prevStructuralKey.current = structuralKey
+
+    // When structural filters change, clear the applied price so the request
+    // goes out WITHOUT a price constraint, letting the API return the true
+    // min/max for the new filter combination.
+    if (structuralChanged) {
+      setAppliedPriceRange(null)
+      setPriceAbsolute(null)
+      setPriceRange(null)
+    }
+
+    // Use the current appliedPriceRange unless we just reset it above.
+    // Because setState is async we read the "next" value directly here.
+    const priceToSend = structuralChanged ? null : appliedPriceRange
+
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
-    const brands = brandsKey ? brandsKey.split(',') : []
-    const subcats = subcatsKey ? subcatsKey.split(',') : []
+
+    const brandsArr = brandsKey ? brandsKey.split(',') : []
+    const subcatsArr = subcatsKey ? subcatsKey.split(',') : []
+
     productService.publicFilter({
       category: filters.category ?? undefined,
-      subcategory: subcats.length > 0 ? subcats : undefined,
-      brand: brands.length > 0 ? brands : undefined,
-      priceMin: priceRange?.[0] ?? undefined,
-      priceMax: priceRange?.[1] ?? undefined,
+      subcategory: subcatsArr.length > 0 ? subcatsArr : undefined,
+      brand: brandsArr.length > 0 ? brandsArr : undefined,
+      priceMin: priceToSend?.[0] ?? undefined,
+      priceMax: priceToSend?.[1] ?? undefined,
       sort: filters.sort,
       pageNumber: filters.page,
       pageSize: PAGE_SIZE,
@@ -77,15 +100,29 @@ const CatalogPage: React.FC = () => {
         setProducts(result.items)
         setTotalCount(result.pagination.totalCount)
         setTotalPages(result.pagination.totalPages)
+
         if (result.filters) {
-          setPriceAbsolute(prev => prev ?? { min: result.filters.minPrice, max: result.filters.maxPrice })
-          setPriceRange(prev => prev ?? [result.filters.minPrice, result.filters.maxPrice])
+          const { minPrice, maxPrice } = result.filters
+
+          if (structuralChanged) {
+            // Fresh filter combination → set the slider bounds AND reset selection to full range
+            setPriceAbsolute({ min: minPrice, max: maxPrice })
+            setPriceRange([minPrice, maxPrice])
+            setAppliedPriceRange([minPrice, maxPrice])
+          } else {
+            // Price/sort/page change → keep slider bounds as they are,
+            // only initialise them if they haven't been set yet.
+            setPriceAbsolute(prev => prev ?? { min: minPrice, max: maxPrice })
+            setPriceRange(prev => prev ?? [minPrice, maxPrice])
+            setAppliedPriceRange(prev => prev ?? [minPrice, maxPrice])
+          }
         }
       })
       .catch(err => { if (!cancelled) console.error(err) })
       .finally(() => { if (!cancelled) setLoading(false) })
+
     return () => { cancelled = true }
-  }, [filters.category, brandsKey, subcatsKey, filters.sort, filters.page, priceRange])
+  }, [filters.category, brandsKey, subcatsKey, filters.sort, filters.page, appliedPriceRange])
 
   const categoryOptions = useMemo(
     () => categories.map(c => ({ id: toSlug(c.name), label: c.name })),
@@ -185,6 +222,7 @@ const CatalogPage: React.FC = () => {
                     step={Math.max(1, Math.ceil((priceAbsolute.max - priceAbsolute.min) / 100))}
                     value={priceRange}
                     onChange={setPriceRange}
+                    onCommit={setAppliedPriceRange}
                   />
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
@@ -194,7 +232,11 @@ const CatalogPage: React.FC = () => {
                         value={Math.round(priceRange[0])}
                         min={priceAbsolute.min}
                         max={priceRange[1]}
-                        onChange={e => setPriceRange([Number(e.target.value), priceRange[1]])}
+                        onChange={e => {
+                          const v: [number, number] = [Number(e.target.value), priceRange[1]]
+                          setPriceRange(v)
+                          setAppliedPriceRange(v)
+                        }}
                         className="w-full p-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:border-black"
                       />
                     </div>
@@ -205,7 +247,11 @@ const CatalogPage: React.FC = () => {
                         value={Math.round(priceRange[1])}
                         min={priceRange[0]}
                         max={priceAbsolute.max}
-                        onChange={e => setPriceRange([priceRange[0], Number(e.target.value)])}
+                        onChange={e => {
+                          const v: [number, number] = [priceRange[0], Number(e.target.value)]
+                          setPriceRange(v)
+                          setAppliedPriceRange(v)
+                        }}
                         className="w-full p-2 bg-neutral-50 border border-neutral-200 rounded-lg text-sm outline-none focus:border-black"
                       />
                     </div>
