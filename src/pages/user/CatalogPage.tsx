@@ -282,6 +282,7 @@ const CatalogPage: React.FC = () => {
                     oldPrice={product.discount > 0 ? product.price / (1 - product.discount / 100) : undefined}
                     image={product.images[0]?.imageLink ?? ''}
                     slug={product.productId}
+                    quantity={product.quantity}
                   />
                 ))}
               </div>

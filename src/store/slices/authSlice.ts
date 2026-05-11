@@ -22,6 +22,7 @@ const initialState: AuthState = {
 
 export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
   const token = await authService.refreshToken();
+  // ovo mogu skipati jer se kroz refreshToken() vec setuje ??
   authService.setToken(token);
   const decoded = authService.getUserFromToken();
   if (!decoded) throw new Error('Invalid token');
@@ -43,6 +44,7 @@ const authSlice = createSlice({
       state.username = action.payload.username;
       state.email = action.payload.email;
       state.role = action.payload.role;
+      state.initializing = false;
     },
     logoutSuccess(state) {
       state.isAuthenticated = false;

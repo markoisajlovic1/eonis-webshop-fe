@@ -24,16 +24,13 @@ const WishlistPage = () => {
 
   const dispatch = useDispatch<AppDispatch>();
 
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  const fetchWishlist = (currentPage: number) => {
     if (!userId) { setLoading(false); return }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     wishlistService.getByUserId(userId, {
       hasDiscount,
       sortAZ,
-      pageNumber: page,
+      pageNumber: currentPage,
       pageSize: PAGE_SIZE,
     })
       .then(result => {
@@ -43,12 +40,17 @@ const WishlistPage = () => {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    fetchWishlist(page)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, hasDiscount, sortAZ, page])
 
   const removeItem = (productId: string) => {
     if (!userId) return
     wishlistService.remove(userId, productId)
-      .then(() => setProducts(prev => prev.filter(p => p.productId !== productId)))
+      .then(() => fetchWishlist(page))
       .catch(console.error)
   }
 
@@ -170,9 +172,17 @@ const WishlistPage = () => {
                     </td>
                     <td className='px-6 py-4'>
                       <div className='flex items-center justify-end gap-3'>
-                        <button onClick={() => handleAddToCart(product)} className='flex items-center gap-2 px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer'>
+                        <button
+                          onClick={() => handleAddToCart(product)}
+                          disabled={product.quantity === 0}
+                          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                            product.quantity > 0
+                              ? 'bg-black text-white hover:bg-neutral-800'
+                              : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                          }`}
+                        >
                           <LuShoppingCart size={14} />
-                          Dodaj u korpu
+                          {product.quantity > 0 ? 'Dodaj u korpu' : 'Nema na zalihama'}
                         </button>
                         <button
                           onClick={() => removeItem(product.productId)}

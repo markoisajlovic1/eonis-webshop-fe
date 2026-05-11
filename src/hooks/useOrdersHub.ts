@@ -15,7 +15,6 @@ export const useOrdersHub = (
   enabled: boolean,
   onOrderCreated: (payload: OrderCreatedPayload) => void
 ) => {
-  const connectionRef = useRef<signalR.HubConnection | null>(null)
   const handlerRef = useRef(onOrderCreated)
   handlerRef.current = onOrderCreated
 
@@ -23,33 +22,51 @@ export const useOrdersHub = (
     if (!enabled) return
 
     const token = authService.getToken()
-    console.log('[SignalR] token at connect time:', token ? token.slice(0, 20) + '...' : 'NULL')
     if (!token) return
 
-    if (connectionRef.current) return
+    // Svaki effect ciklus dobija svoj ID da znamo koji je "aktivan"
+    const effectId = Math.random().toString(36).slice(2, 6)
+    let active = true
+
+    console.log(`[SignalR:${effectId}] Starting`)
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_BASE_URL}/hubs/orders?access_token=${token}`, {
-        transport: signalR.HttpTransportType.WebSockets,
-        skipNegotiation: true,
+      .withUrl(`${import.meta.env.VITE_API_BASE_URL}/hubs/orders`, {
+        accessTokenFactory: () => authService.getToken() ?? '',
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 2000, 5000, 10000])
       .configureLogging(signalR.LogLevel.Warning)
       .build()
 
-    connectionRef.current = connection
+    connection.on('OrderCreated', (payload: OrderCreatedPayload) => {
+      if (!active) {
+        console.log(`[SignalR:${effectId}] Received event but inactive, ignoring`)
+        return
+      }
+      console.log(`[SignalR:${effectId}] ✅ OrderCreated:`, payload)
+      handlerRef.current(payload)
+    })
 
-    const handler = (payload: OrderCreatedPayload) => handlerRef.current(payload)
-    connection.on('OrderCreated', handler)
+    ;(window as any).__signalr = connection
 
-    connection.start()
-      .then(() => console.log('[SignalR] Connected'))
-      .catch(err => console.error('[SignalR] Connection failed:', err))
+    connection
+      .start()
+      .then(() => {
+        if (!active) {
+          console.log(`[SignalR:${effectId}] Started but already inactive, stopping`)
+          connection.stop()
+          return
+        }
+        console.log(`[SignalR:${effectId}] ✅ Connected, ID:`, connection.connectionId)
+      })
+      .catch(err => {
+        if (active) console.error(`[SignalR:${effectId}] ❌ Failed:`, err)
+      })
 
     return () => {
-      connection.off('OrderCreated', handler)
+      active = false
+      console.log(`[SignalR:${effectId}] Cleanup, stopping`)
       connection.stop()
-      connectionRef.current = null
     }
   }, [enabled])
 }

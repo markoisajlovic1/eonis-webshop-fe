@@ -26,7 +26,7 @@ class WishlistService {
 
   async remove(userId: string, productId: string): Promise<void> {
     try {
-      await axiosInstance.delete(`${this.ENDPOINT}/${userId}/${productId}`);
+      await axiosInstance.delete(`${this.ENDPOINT}/user/${userId}/product/${productId}`);
     } catch (error) {
       throw this.handleError(error);
     }

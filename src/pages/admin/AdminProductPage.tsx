@@ -213,15 +213,13 @@ const AdminProductPage = () => {
               {toggling ? '...' : isPublished ? <BsCollection /> : <MdOutlinePublic />}
             </button>
           )}
-          {
-            !isEdit && (<button
-              onClick={handlePublish}
-              disabled={publishing}
-              className="bg-blue-500 disabled:opacity-50 text-white rounded-md py-1 px-3 cursor-pointer"
-            >
-              {publishing ? 'Čuvanje...' : 'Postavi'}
-            </button>)
-          }
+          <button
+            onClick={handlePublish}
+            disabled={publishing}
+            className="bg-blue-500 disabled:opacity-50 text-white rounded-md py-1 px-3 cursor-pointer"
+          >
+            {publishing ? 'Čuvanje...' : isEdit ? 'Sačuvaj izmene' : 'Postavi'}
+          </button>
           
         </div>
       </div>

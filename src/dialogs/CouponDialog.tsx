@@ -33,7 +33,7 @@ const CouponDialog = (props: CouponDialogProps) => {
         const created = await couponService.create({ code, value: Number(discount), userId: 'c0faa8de-6269-4984-a4d7-e3f9f5c1f6dd' })
         onSaved(created)
       } else {
-        const updated = await couponService.update(props.coupon.codeId, { code, value: Number(discount), userId: props.coupon.userId })
+        const updated = await couponService.update(props.coupon.code, { code, value: Number(discount), userId: props.coupon.userId })
         onSaved(updated)
       }
       onClose()

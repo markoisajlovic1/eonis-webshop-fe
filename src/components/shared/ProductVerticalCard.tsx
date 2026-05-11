@@ -16,9 +16,11 @@ interface ProductVerticalCardProps {
   oldPrice?: number;
   image: string;
   slug: string;
+  quantity: number;
 }
 
-const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image, slug }) => {
+const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, oldPrice, image, slug, quantity }) => {
+  const inStock = quantity > 0;
   const formatPrice = (p: number) => p.toLocaleString('sr-RS');
   const userId = useSelector((state: RootState) => state.auth.userId);
   const wishlistIds = useSelector((state: RootState) => state.wishlist.productIds);
@@ -39,7 +41,7 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    // na osnovu toga dal je user ulogovan skontamo dal treba u bazu il LS
+    if (!inStock) return;
     if (userId) {
       cartService.create({ userId, productId: slug, quantity: 1 }).catch(console.error);
     } else {
@@ -87,9 +89,17 @@ const ProductVerticalCard: React.FC<ProductVerticalCardProps> = ({ name, price, 
         </div>
       </div>
       
-      <button onClick={handleAddToCart} className="mt-auto flex items-center gap-2 justify-center w-full py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold opacity-0 translate-y-2 transition-all group-hover:opacity-100 group-hover:translate-y-0 hover:bg-gray-600 active:bg-black cursor-pointer">
+      <button
+        onClick={handleAddToCart}
+        disabled={!inStock}
+        className={`mt-auto flex items-center gap-2 justify-center w-full py-2 rounded-lg text-xs font-semibold opacity-0 translate-y-2 transition-all group-hover:opacity-100 group-hover:translate-y-0 cursor-pointer ${
+          inStock
+            ? 'bg-neutral-900 text-white hover:bg-gray-600 active:bg-black'
+            : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+        }`}
+      >
         <LuShoppingCart />
-        <span>Dodaj u korpu</span>
+        <span>{inStock ? 'Dodaj u korpu' : 'Nema na zalihama'}</span>
       </button>
     </Link>
   )

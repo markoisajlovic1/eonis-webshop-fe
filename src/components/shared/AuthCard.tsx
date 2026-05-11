@@ -8,6 +8,7 @@ import { authService, CLAIMS } from '../../services/authService';
 import { loginSuccess } from '../../store/slices/authSlice';
 import type { AppDispatch } from '../../store/store';
 import ForgotPasswordDialog from '../../dialogs/ForgotPasswordDialog';
+import { checkPasswordStrength } from '../../utils/passwordStrengthCheck';
 
 const initialLoginData: LoginPayload = {
   email: '',
@@ -224,6 +225,20 @@ const AuthCard: React.FC = () => {
                   placeholder="••••••••"
                   className="px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:border-black focus:ring-2 focus:ring-black/5 outline-none transition-all"
                 />
+                {registerData.password && (() => {
+                  const { strength, label } = checkPasswordStrength(registerData.password)
+                  const colors = { weak: 'bg-red-400', medium: 'bg-yellow-400', strong: 'bg-green-500' }
+                  const widths = { weak: 'w-1/3', medium: 'w-2/3', strong: 'w-full' }
+                  const textColors = { weak: 'text-red-400', medium: 'text-yellow-500', strong: 'text-green-500' }
+                  return (
+                    <div className="flex flex-col gap-1 mt-1">
+                      <div className="h-1 w-full bg-neutral-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-300 ${colors[strength]} ${widths[strength]}`} />
+                      </div>
+                      <span className={`text-xs ml-1 ${textColors[strength]}`}>{label}</span>
+                    </div>
+                  )
+                })()}
               </div>
 
               <div className="flex flex-col gap-1">

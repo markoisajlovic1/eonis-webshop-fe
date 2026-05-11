@@ -22,6 +22,7 @@ import type { DashboardStatsDTO, DailyStatsDTO } from '../../types/stats'
 import type { OrderFilterDTO } from '../../types/order'
 import { ORDER_STATUS_LABELS } from '../../types/order'
 import { MONTH_NAMES } from '../../constants/monthNames'
+import * as signalR from '@microsoft/signalr'
 
 const fmt = (n: number) => n.toLocaleString('sr-RS')
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -80,7 +81,43 @@ const DashboardPage = () => {
     setLatestOrders(prev => [newOrder, ...prev].slice(0, 5))
   }, [])
 
-  useOrdersHub(isEmployee, handleOrderCreated)
+  // useOrdersHub(isEmployee, handleOrderCreated)
+
+  useEffect(() => {
+  if (!isEmployee) return
+
+  const token = localStorage.getItem('token')
+
+  if (!token) return
+
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl('https://localhost:5001/hubs/orders', {
+      accessTokenFactory: () => token
+    })
+    .withAutomaticReconnect()
+    .configureLogging(signalR.LogLevel.Information)
+    .build()
+
+  connection.on('OrderCreated', (payload: OrderCreatedPayload) => {
+    handleOrderCreated(payload)
+  })
+
+  const start = async () => {
+    try {
+      await connection.start()
+
+      console.log('OrdersHub connected')
+    } catch (err) {
+      console.error('SignalR connection failed:', err)
+    }
+  }
+
+  start()
+
+  return () => {
+    connection.stop()
+  }
+}, [isEmployee, handleOrderCreated])
 
   useEffect(() => {
     statsService.getDashboard().then(setDashboard).catch(console.error)

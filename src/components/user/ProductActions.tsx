@@ -100,7 +100,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({ productId, name, price,
           className="flex items-center justify-center gap-2 w-full py-3 bg-yellow-500 text-black rounded-xl text-sm font-semibold hover:bg-neutral-800 hover:text-white active:bg-neutral-900 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <LuShoppingCart className="text-lg" />
-          Dodaj u korpu
+          {inStock ? 'Dodaj u korpu' : 'Nema na zalihama'}
         </button>
 
         {userId && (
