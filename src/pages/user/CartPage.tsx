@@ -127,6 +127,7 @@ const CartPage = () => {
       addressId: selectedAddressId,
       email: userEmail,
       items: cartItems,
+      couponCode: appliedDiscount > 0 ? couponCode.trim() : null,
     })
       .then(result => { window.location.href = result.url })
       .catch(console.error)
@@ -143,6 +144,7 @@ const CartPage = () => {
         email,
         items: cartItems,
         address,
+        couponCode: appliedDiscount > 0 ? couponCode.trim() : null,
       })
         .then(() => toast.success('Porudžbina uspešno poslata!'))
         .catch(console.error)
@@ -153,6 +155,7 @@ const CartPage = () => {
         email,
         items: cartItems,
         address,
+        couponCode: appliedDiscount > 0 ? couponCode.trim() : null,
       })
         .then(result => { window.location.href = result.url })
         .catch(console.error)

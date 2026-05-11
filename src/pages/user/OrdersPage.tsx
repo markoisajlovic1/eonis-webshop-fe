@@ -1,19 +1,15 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { FaAngleDown } from 'react-icons/fa6'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store/store'
 import { orderService } from '../../services/orderService'
 import { reviewService } from '../../services/reviewService'
-import type { OrderDTO, OrderSort, OrderItemWithProductDTO } from '../../types/order'
+import type { UserOrderDTO, OrderStatus } from '../../types/order'
+import { ORDER_STATUS_LABELS } from '../../types/order'
 import ReviewDialog from '../../dialogs/ReviewDialog'
 
 const PAGE_SIZE = 12
-
-const SORT_OPTIONS: { label: string; value: OrderSort }[] = [
-  { label: 'Datum (Najnovije)', value: 'DateDesc' },
-  { label: 'Datum (Najstarije)', value: 'DateAsc' },
-]
 
 const fmtDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString('sr-RS', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -22,23 +18,27 @@ const fmtPrice = (n: number) => n.toLocaleString('sr-RS')
 
 const OrdersPage = () => {
   const userId = useSelector((state: RootState) => state.auth.userId)
-  const [orders, setOrders] = useState<OrderDTO[]>([])
+  const [orders, setOrders] = useState<UserOrderDTO[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [sort, setSort] = useState<OrderSort>('DateDesc')
   const [page, setPage] = useState(1)
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [itemsMap, setItemsMap] = useState<Record<string, OrderItemWithProductDTO[]>>({})
-  const [itemsLoading, setItemsLoading] = useState<string | null>(null)
   const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set())
   const [reviewProduct, setReviewProduct] = useState<{ productId: string; productName: string } | null>(null)
 
   useEffect(() => {
     if (!userId) { setLoading(false); return }
-    orderService.getByUserId(userId)
-      .then(setOrders)
+    setLoading(true)
+    orderService.getByUserId(userId, { pageNumber: page, pageSize: PAGE_SIZE })
+      .then(result => {
+        setOrders(result.items)
+        setTotalCount(result.totalCount)
+        setTotalPages(result.totalPages)
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [userId])
+  }, [userId, page])
 
   useEffect(() => {
     if (!userId) return
@@ -47,34 +47,8 @@ const OrdersPage = () => {
       .catch(console.error)
   }, [userId])
 
-  const sorted = useMemo(() => {
-    return [...orders].sort((a, b) => {
-      const diff = new Date(a.date).getTime() - new Date(b.date).getTime()
-      return sort === 'DateAsc' ? diff : -diff
-    })
-  }, [orders, sort])
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  const handleSort = (value: OrderSort) => {
-    setSort(value)
-    setPage(1)
-  }
-
   const handleOpenDetails = (orderId: string) => {
-    if (expandedId === orderId) {
-      setExpandedId(null)
-      return
-    }
-    setExpandedId(orderId)
-    if (itemsMap[orderId]) return
-    setItemsLoading(orderId)
-    //
-    orderService.getItemsByOrderId(orderId)
-      .then(items => setItemsMap(prev => ({ ...prev, [orderId]: items })))
-      .catch(console.error)
-      .finally(() => setItemsLoading(null))
+    setExpandedId(prev => prev === orderId ? null : orderId)
   }
 
   const handleReviewed = (productId: string) => {
@@ -86,20 +60,7 @@ const OrdersPage = () => {
       <div className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-black">Moje porudžbine</h1>
-          <p className="text-sm text-gray-400 mt-1">{orders.length} porudžbina</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-neutral-500">Sortiraj po:</span>
-          <select
-            value={sort}
-            onChange={e => handleSort(e.target.value as OrderSort)}
-            className="bg-gray-100 border border-neutral-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-black cursor-pointer"
-          >
-            {SORT_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          <p className="text-sm text-gray-400 mt-1">{totalCount} porudžbina</p>
         </div>
       </div>
 
@@ -108,7 +69,7 @@ const OrdersPage = () => {
           <div className="flex items-center justify-center py-20 text-sm text-gray-400">
             Učitavanje...
           </div>
-        ) : paginated.length === 0 ? (
+        ) : orders.length === 0 ? (
           <div className="py-12 text-center text-neutral-500 font-light italic">
             Trenutno nemate aktivnih porudžbina.
           </div>
@@ -118,12 +79,15 @@ const OrdersPage = () => {
               <tr className="text-left text-xs text-gray-400 bg-neutral-50 border-b border-neutral-100">
                 <th className="px-6 py-3">ID porudžbine</th>
                 <th className="px-6 py-3">Datum</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Plaćeno</th>
                 <th className="px-6 py-3">Kupon</th>
+                <th className="px-6 py-3 text-right">Ukupno</th>
                 <th className="py-3 text-center">Detalji</th>
               </tr>
             </thead>
             <tbody>
-              {paginated.map(order => (
+              {orders.map(order => (
                 <>
                   <tr key={order.orderId} className="border-b border-neutral-50 last:border-0 hover:bg-neutral-50 transition-colors">
                     <td className="px-6 py-4">
@@ -133,13 +97,33 @@ const OrdersPage = () => {
                       <span className="font-medium text-neutral-800">{fmtDate(order.date)}</span>
                     </td>
                     <td className="px-6 py-4">
-                      {order.codeId ? (
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full `}>
+                        {ORDER_STATUS_LABELS[order.status]}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${order.isPaid ? ' text-green-700' : ' text-red-500'}`}>
+                        {order.isPaid ? 'Plaćeno' : 'Nije plaćeno'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {order.couponCode ? (
                         <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                          Kupon primenjen
+                          {order.couponCode} ({order.couponValue}%)
                         </span>
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="font-semibold text-neutral-800">
+                          {fmtPrice(order.finalPrice ?? order.totalPrice)} RSD
+                        </span>
+                        {order.finalPrice != null && order.finalPrice !== order.totalPrice && (
+                          <span className="text-xs text-gray-400 line-through">{fmtPrice(order.totalPrice)} RSD</span>
+                        )}
+                      </div>
                     </td>
                     <td className="flex items-center justify-center py-4">
                       <button
@@ -155,46 +139,35 @@ const OrdersPage = () => {
 
                   {expandedId === order.orderId && (
                     <tr key={`${order.orderId}-details`} className="bg-neutral-50 border-b border-neutral-100">
-                      <td colSpan={4} className="px-6 py-4">
-                        {itemsLoading === order.orderId ? (
-                          <p className="text-xs text-gray-400">Učitavanje stavki...</p>
-                        ) : (itemsMap[order.orderId] ?? []).length === 0 ? (
+                      <td colSpan={7} className="px-6 py-4">
+                        {order.items.length === 0 ? (
                           <p className="text-xs text-gray-400">Nema stavki u ovoj porudžbini.</p>
                         ) : (
                           <div className="flex flex-col gap-3">
-                            <div className='flex items-center justify-between'>
-                              <span className='font-semibold text-md'>Ukupno placeno</span>
-                              <span className='bg-yellow-300 px-3 rounded-md'>{fmtPrice(itemsMap[order.orderId].reduce((sum, item) => sum + item.product.price * (1 - item.product.discount / 100) * item.quantity, 0))} RSD</span>
-                            </div>
-                            <hr />
-                            {itemsMap[order.orderId].map(item => {
-                              const alreadyReviewed = reviewedProductIds.has(item.product.productId)
+                            {order.items.map(item => {
+                              const alreadyReviewed = reviewedProductIds.has(item.productId)
+                              const lineTotal = item.unitDiscountedPrice * item.quantity
+                              const lineTotalOld = item.unitPrice * item.quantity
+                              const hasDiscount = item.unitDiscountedPrice < item.unitPrice
                               return (
-                                <div key={item.product.productId} className="flex items-center gap-4 bg-white rounded-lg border border-neutral-100 px-4 py-3">
-                                  <div className="w-12 h-12 shrink-0 rounded-lg bg-neutral-50 border border-neutral-100 overflow-hidden flex items-center justify-center p-1">
-                                    <img
-                                      src={item.product.images[0]?.imageLink ?? ''}
-                                      alt={item.product.productName}
-                                      className="w-full h-full object-contain"
-                                    />
-                                  </div>
+                                <div key={item.productId} className="flex items-center gap-4 bg-white rounded-lg border border-neutral-100 px-4 py-3">
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-neutral-800 text-sm truncate">{item.product.productName}</p>
+                                    <p className="font-medium text-neutral-800 text-sm truncate">{item.productName}</p>
                                     <p className="text-xs text-gray-400 mt-0.5">Količina: {item.quantity}</p>
                                   </div>
                                   <div className="text-right shrink-0">
                                     <p className="font-semibold text-sm text-neutral-800">
-                                      {fmtPrice(item.product.price * (1 - item.product.discount / 100) * item.quantity)} RSD
+                                      {fmtPrice(lineTotal)} RSD
                                     </p>
-                                    {item.product.discount > 0 && (
+                                    {hasDiscount && (
                                       <p className="text-xs text-gray-400 line-through">
-                                        {fmtPrice(item.product.price * item.quantity)} RSD
+                                        {fmtPrice(lineTotalOld)} RSD
                                       </p>
                                     )}
                                   </div>
                                   <button
                                     disabled={alreadyReviewed}
-                                    onClick={() => !alreadyReviewed && setReviewProduct({ productId: item.product.productId, productName: item.product.productName })}
+                                    onClick={() => !alreadyReviewed && setReviewProduct({ productId: item.productId, productName: item.productName })}
                                     className={`shrink-0 px-3 py-1.5 text-xs font-medium border rounded-lg transition-colors
                                       ${alreadyReviewed
                                         ? 'border-none bg-yellow-50 text-black cursor-not-allowed'

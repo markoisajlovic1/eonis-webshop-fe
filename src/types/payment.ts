@@ -19,6 +19,7 @@ export interface CreateCheckoutSessionDTO {
   email?: string | null
   items: CheckoutItemDTO[]
   address?: CreateAddressDTO
+  couponCode?: string | null
 }
 
 export interface CashPaymentDTO {
@@ -27,6 +28,7 @@ export interface CashPaymentDTO {
   email?: string | null
   items: CheckoutItemDTO[]
   address?: CreateAddressDTO
+  couponCode?: string | null
 }
 
 export interface CheckoutSessionResult {
